@@ -2,7 +2,7 @@
   width: 100%;
   border-collapse: collapse;
   color: #FFF;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   margin-bottom: 100px;
 
@@ -11,6 +11,11 @@
 
     > tr > th {
       padding: 18px 0;
+      position: sticky;
+      top: 0px;
+      z-index: 5;
+      background: #353535;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
   }
 
@@ -23,42 +28,15 @@
   }
 }
 
-tr {
-  display: flex;
-  align-items: center;
-  max-height: 54px;
+.table tbody tr {
+  height: 60px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-th, td {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  // border: 1px solid red;
-}
-
 table > thead > tr > th:first-child {
-  min-width: 300px;
-  justify-content: start;
-}
-
-table > tbody > tr > td:first-child {
-  min-width: 300px;
-  justify-content: start;
-}
-
-th:nth-child(3), td:nth-child(3) {
-  max-width: 140px;
-}
-
-th:nth-child(4), td:nth-child(4) {
-  max-width: 160px;
-}
-
-th:nth-child(5), td:nth-child(5) {
-  max-width: 140px;
+  width: 300px;
+  padding-left: 10px;
+  text-align: start;
 }
 
 /* Скелетон для лоудера */

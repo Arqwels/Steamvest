@@ -1,29 +1,19 @@
 // TableCell_Object.tsx
 .object {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
   > img {
-    width: 50px;
-    padding: 4px;
-  }
-  > span {
-    margin-left: 5px;
+    height: 50px;
+    object-fit: cover;
   }
 }
 
-// TableCell_Price24h.tsx
-.price24h {
-  flex-direction: column;
-}
-
-// TableCell_InvestmentsAndCount.tsx
-.investmentsAndCount {
-  flex-direction: column;
+.wrap {
+  text-align: center;
 }
 
 .investmentCount {
   color: #9E9E9E;
-}
-
-// TableCell_CurrentProfit.tsx
-.currentProfit {
-  flex-direction: column;
 }
