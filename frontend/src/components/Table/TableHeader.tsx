@@ -11,5 +11,5 @@ export const TableHeader = () => {
         <th>Активы</th>
       </tr>
     </thead>
-  )
+  );
 };
