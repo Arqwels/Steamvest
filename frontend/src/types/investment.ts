@@ -13,6 +13,22 @@ export interface Investment {
   changePrice: number;
 }
 
+export interface InvestmentsResponse {
+  investments: Investment[];
+  meta: {
+    lastId: number | null;
+    hasMore: boolean;
+    limit: number;
+  };
+}
+
+export interface SummaryInvestments {
+  totalInvested: number;
+  currentBalance: number;
+  grossProfit: number;
+  netProfit: number;
+}
+
 export interface CreateInvestmentRequest {
   idItem: number;
   portfolioId: number;
