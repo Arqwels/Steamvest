@@ -13,13 +13,12 @@ import { useAppSelector } from '../../stores/hooks';
 
 export const TableRow = ({ row }: { row: TableData }) => {
   const [modalActive, setModalActive] = useState(false);
-  const portfolioId = useAppSelector(state => state.activePortfolio.portfolioId!);
+  const portfolioId = useAppSelector((state) => state.activePortfolio.portfolioId!);
 
-  // RTK Query мутации
+  // RTK Query мутации
   const [updateInvestment, { isLoading: isUpdating }] = useUpdateInvestmentMutation();
   const [deleteInvestment, { isLoading: isDeleting }] = useDeleteInvestmentMutation();
 
-  
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -42,18 +41,18 @@ export const TableRow = ({ row }: { row: TableData }) => {
     } catch (error) {
       console.log('Error1: ', error);
     }
-  }
+  };
 
   // колбэк для «продажи» (удаления)
   //! Написать логику по продаже инвестиций (Продумать всё)
   const handleSell = async () => {
     try {
-      await deleteInvestment(row.id).unwrap();
+      await deleteInvestment({ id: row.id, portfolioId }).unwrap();
       setModalActive(false);
     } catch (error) {
       console.log('Error2: ', error);
     }
-  }
+  };
 
   return (
     <>
@@ -110,5 +109,5 @@ export const TableRow = ({ row }: { row: TableData }) => {
         onSell={handleSell}
       />
     </>
-  )
+  );
 };
