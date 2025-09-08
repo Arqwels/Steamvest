@@ -11,14 +11,14 @@ type TableCell_Price24hProps = {
 export const TableCell_Price24h = ({
   price_item,
   change_price_percent_24h,
-  currencyCode
+  currencyCode,
 }: TableCell_Price24hProps) => {
   const cls = getChangeClass(change_price_percent_24h);
 
   return (
-    <td className={styles.price24h}>
-      <span>{formatNumber(price_item, { currency: currencyCode })}</span>
-      <span className={cls}>{change_price_percent_24h}%</span>
+    <td className={styles.wrap}>
+      <p>{formatNumber(price_item, { currency: currencyCode })}</p>
+      <p className={cls}>{change_price_percent_24h}%</p>
     </td>
   );
 };

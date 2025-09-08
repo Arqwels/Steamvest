@@ -11,14 +11,14 @@ type TableCell_InvestmentsAndCountProps = {
 export const TableCell_InvestmentsAndCount = ({
   count_items,
   buy_price,
-  currencyCode
+  currencyCode,
 }: TableCell_InvestmentsAndCountProps) => {
   const investment = calcInvest(count_items, buy_price);
 
   return (
-    <td className={styles.investmentsAndCount}>
-      <span>{formatNumber(investment, { currency: currencyCode })}</span>
-      <span className={styles.investmentCount}>{count_items} шт.</span>
+    <td className={styles.wrap}>
+      <p>{formatNumber(investment, { currency: currencyCode })}</p>
+      <p className={styles.investmentCount}>{count_items} шт.</p>
     </td>
   );
 };

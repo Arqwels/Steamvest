@@ -1,5 +1,6 @@
 import { formatNumber } from '../../../utils/formatNumber';
 import { getChangeClass } from '../../../utils/getChangeClass';
+import styles from './TableCell.module.scss';
 
 type TableCell_24hProfitProps = {
   count_items: number;
@@ -7,13 +8,19 @@ type TableCell_24hProfitProps = {
   currencyCode?: string;
 };
 
-export const TableCell_24hProfit = ({ count_items, change_price_profit_24h, currencyCode }: TableCell_24hProfitProps) => {
-  const totalProfit = (count_items * change_price_profit_24h)
+export const TableCell_24hProfit = ({
+  count_items,
+  change_price_profit_24h,
+  currencyCode,
+}: TableCell_24hProfitProps) => {
+  const totalProfit = count_items * change_price_profit_24h;
 
   const cls = getChangeClass(totalProfit);
   return (
-    <td>
-      <span className={cls}>{formatNumber(totalProfit, { currency: currencyCode })}</span>
+    <td className={styles.wrap}>
+      <p className={cls}>
+        {formatNumber(totalProfit, { currency: currencyCode })}
+      </p>
     </td>
   );
 };
