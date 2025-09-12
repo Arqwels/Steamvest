@@ -31,4 +31,6 @@ router.delete('/:id', investmentController.deleteInvestment);
 // Экспорт инвестиций в Excel (portfolioId в query)
 router.get('/export', checkPortfolioOwnership, investmentController.exportInvestments);
 
+router.post('/sale', checkPortfolioOwnership, investmentController.saleInvestments);
+
 module.exports = router;
