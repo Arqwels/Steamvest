@@ -8,7 +8,7 @@ export const MainPage = () => {
     <main className={styles.root}>
       <div className={styles.inner}>
         <div className={styles.content}>
-          <h1 className={styles.title}>SteamFol</h1>
+          <h1 className={styles.title}>Steamvest</h1>
           <p className={styles.description}>
             Lorem ipsum dolor sit consectetur adipisicing elit. Assumenda totam deleniti corporis aspernatur nulla sapiente unde porro cumque expedita? Deserunt aliquid obcaecati quos esse corporis, quo dignissimos nemo velit quis!
           </p>
