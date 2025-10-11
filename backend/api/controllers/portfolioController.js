@@ -1,4 +1,4 @@
-const { Portfolio, Invest, Skins, sequelize } = require('../models');
+const { Portfolio, Invest, Skins, sequelize, Sale } = require('../models');
 
 class PortfolioController {
   async createPortfolio (req, res) {
@@ -10,8 +10,8 @@ class PortfolioController {
         return res.status(400).json({ message: 'Название портфолио обязательно' });
       }
 
-      if (namePortfolio.length > 100) {
-        return res.status(400).json({ message: 'Название должно быть до 100 символов' });
+      if (namePortfolio.length > 30) {
+        return res.status(400).json({ message: 'Название должно быть до 30 символов' });
       }
 
       const newPortfolio = await Portfolio.create({
@@ -28,7 +28,11 @@ class PortfolioController {
 
   async getAllPortfolios(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Не авторизован' });
+      }
+
       let portfolios = await Portfolio.findAll({
         where: { userId },
         order: [['id', 'ASC']]
@@ -109,15 +113,15 @@ class PortfolioController {
   async renamePortfolio(req, res) {
     try {
       const userId = req.user.id;
-      const { id } = req.params;
+      const { portfolioId } = req.params;
       const { namePortfolio } = req.body;
 
-      if (!namePortfolio || namePortfolio.length > 100) {
-        return res.status(400).json({ message: 'Новое название портфолио обязательно и до 100 символов' });
+      if (!namePortfolio || namePortfolio.length > 30) {
+        return res.status(400).json({ message: 'Новое название портфолио обязательно и до 30 символов' });
       }
 
       const existing = await Portfolio.findOne({
-        where: { id, userId }
+        where: { id: portfolioId, userId }
       });
       if (!existing) {
         return res.status(404).json({ message: 'Портфолио не найдено' });
@@ -125,10 +129,10 @@ class PortfolioController {
 
       await Portfolio.update(
         { namePortfolio },
-        { where: { id, userId } }
+        { where: { id: portfolioId, userId } }
       );
       const updatedPortfolio = await Portfolio.findOne({
-        where: { id, userId }
+        where: { id: portfolioId, userId }
       });
 
       return res.status(200).json(updatedPortfolio);
@@ -141,7 +145,7 @@ class PortfolioController {
   async activatePortfolio(req, res) {
     try {
       const userId = req.user.id;
-      const { id } = req.params;
+      const { portfolioId } = req.params;
 
       const result = await sequelize.transaction(async (t) => {
         await Portfolio.update(
@@ -151,7 +155,7 @@ class PortfolioController {
 
         const [updated] = await Portfolio.update(
           { isActive: true },
-          { where: { id, userId }, transaction: t }
+          { where: { id: portfolioId, userId }, transaction: t }
         );
 
         return updated;
@@ -169,34 +173,58 @@ class PortfolioController {
   }
 
   async deletePortfolio(req, res) {
+    const trx = await sequelize.transaction();
     try {
       const userId = req.user.id;
-      const { id } = req.params;
+      const portfolio = req.portfolio;
+      const portfolioId = Number(portfolio.id);
 
-      const deletedCount = await Portfolio.destroy({
-        where: { id, userId }
+      const deletedSalesCount = await Sale.destroy({
+        where: { portfolioId },
+        transaction: trx,
       });
-      if (!deletedCount) {
-        return res.status(404).json({ message: 'Портфолио не найдено' });
-      }
+
+      const deletedInvestCount = await Invest.destroy({
+        where: { portfolioId },
+        transaction: trx,
+      });
+
+      await portfolio.destroy({ transaction: trx });
 
       const activeExists = await Portfolio.findOne({
-        where: { userId, isActive: true }
+        where: { userId, isActive: true },
+        transaction: trx,
       });
+
       if (!activeExists) {
         const next = await Portfolio.findOne({
           where: { userId },
-          order: [['createdAt', 'ASC']]
+          order: [['createdAt', 'ASC']],
+          transaction: trx,
         });
-        if (next) await Portfolio.update(
-          { isActive: true },
-          { where: { id: next.id } }
-        );
+        if (next) {
+          await Portfolio.update(
+            { isActive: true },
+            { where: { id: next.id }, transaction: trx }
+          );
+        }
       }
 
-      return res.status(200).json({ message: 'Портфолио успешно удалено' });
+      await trx.commit();
+      return res.status(200).json({
+        message: 'Портфолио успешно удалено',
+        deleted: {
+          portfolioId: portfolio.id,
+          portfolioName: portfolio.namePortfolio,
+          sales: deletedSalesCount,
+          investments: deletedInvestCount,
+        },
+      });
     } catch (error) {
       console.error('Ошибка при удалении портфолио:', error);
+      if (trx.finished !== 'commit' && trx.finished !== 'rollback') {
+        await trx.rollback();
+      }
       return res.status(500).json({ message: 'Ошибка при удалении портфолио!' });
     }
   }
