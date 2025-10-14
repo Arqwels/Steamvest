@@ -1,0 +1,122 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #FFF;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 100px;
+
+  > thead {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    > tr > th {
+      padding: 18px 0;
+      position: sticky;
+      top: 0px;
+      z-index: 5;
+      background: #353535;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+  }
+}
+
+.table tbody tr {
+  height: 60px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+table > thead > tr > th:first-child {
+  width: 300px;
+  padding-left: 10px;
+  text-align: start;
+}
+
+/* Скелетон для лоудера */
+.skeletonShimmer {
+  position: relative;
+  background: #2b2b2b;
+  overflow: hidden;
+}
+
+.skeletonShimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -150%;
+  width: 150%; height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.2) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.8s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+.emptyWrapper {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.emptyScreen {
+  text-align: center;
+  padding: 20px;
+  max-width: 70%;
+  color: var(--color-text);
+}
+
+.downArrow {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid #FFF;
+  margin-top: 12px;
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+.downArrow {
+  animation: bounceDown 1.2s infinite;
+}
+
+// TableSalesRow.module.css
+.actionCell {
+  text-align: center;
+}
+
+.deleteButton {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, filter 0.1s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: var(--color-background);
+    filter: brightness(1.35);
+  }
+
+  &:active {
+    background-color: var(--color-background);
+    filter: brightness(1.2);
+    transform: scale(0.95);
+  }
+}
