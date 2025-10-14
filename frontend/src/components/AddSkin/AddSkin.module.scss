@@ -106,29 +106,6 @@
   }
 }
 
-/* Кнопка закрытия модального окна */
-.closeModal {
-  position: absolute;
-  cursor: pointer;
-  right: 3%;
-  top: 3%;
-
-  width: 32px;
-  height: 32px;
-
-  color: #FFF;
-
-  &:hover {
-    background: rgba(256, 256, 256, 0.3);
-    border-radius: 5px;
-  }
-
-  svg {
-    width: 100%;
-  }
-}
-
-
 .searchBlock {
   position: relative;
 }

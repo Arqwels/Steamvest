@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import styles from './ConfirmModal.module.scss';
-import PlusIcon from '../Svg/PlusIcon';
+import { BtnCloseModal } from '../Modal/BtnCloseModal';
 
 interface ConfirmModalProps {
   active: boolean;
@@ -57,9 +57,11 @@ export const ConfirmModal = ({
             {isLoading ? '...' : confirmLabel}
           </button>
         </div>
-        <button className={styles.closeModal} onClick={() => setActive(false)}>
-          <PlusIcon />
-        </button>
+
+        <BtnCloseModal
+          onClose={() => setActive(false)}
+          position={{ top: "1%", right: "1%" }}
+        />
       </div>
     </Modal>
   )

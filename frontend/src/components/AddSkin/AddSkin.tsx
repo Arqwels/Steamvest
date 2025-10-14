@@ -8,6 +8,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { Skin } from '../../types';
 import { useCreateInvestmentMutation } from '../../api/investmentApi';
 import { useAppSelector } from '../../stores/hooks';
+import { BtnCloseModal } from '../Modal/BtnCloseModal';
 
 interface AddSkinProps {
   active: boolean;
@@ -186,9 +187,11 @@ export const AddSkin = ({ active, setActive }: AddSkinProps) => {
         >
           {isCreating ? 'Добавление...' : 'Добавить'}
         </button>
-        <button className={styles.closeModal} onClick={() => setActive(false)}>
-          <PlusIcon />
-        </button>
+
+        <BtnCloseModal
+          onClose={() => setActive(false)}
+          position={{ top: "3%", right: "3%" }}
+        />
       </div>
     </Modal>
   );
