@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import styles from './Tab.module.scss';
 
 interface TabProps {
@@ -6,9 +7,10 @@ interface TabProps {
   onClick: () => void;
 }
 
-export const Tab = ({ label, isActive, onClick }: TabProps) => {
+export const Tab = forwardRef<HTMLButtonElement, TabProps>(({ label, isActive, onClick }, ref) => {
   return (
     <button
+      ref={ref}
       className={`${styles.tab} ${isActive ? styles.active : ''}`}
       onClick={isActive ? undefined : onClick}
       disabled={isActive}
@@ -17,4 +19,6 @@ export const Tab = ({ label, isActive, onClick }: TabProps) => {
       {label}
     </button>
   )
-};
+});
+
+Tab.displayName = 'Tab';
