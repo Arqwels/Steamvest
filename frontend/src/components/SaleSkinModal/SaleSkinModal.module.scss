@@ -1,0 +1,207 @@
+// Горизонтальная линия-разделитель между секциями
+.divider {
+  margin: 0;
+  margin-top: 12px;
+  height: 1px;
+  width: 100%;
+  background-color: #e7e7e7;
+  border: none;
+  opacity: 0.33;
+}
+
+.modalWrap {
+  min-width: 400px;
+  max-width: 450px;
+  padding: 32px 48px;
+
+  background-color: var(--color-background-modal);
+
+  border-radius: 20px;
+  border: 1px solid var(--color-border-input);
+}
+
+.titleHead {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.titleSkin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+
+  font-size: 16px;
+
+  img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+}
+
+.inputWrap {
+  position: relative;
+  margin-top: 32px;
+}
+
+.inputSaleDate {
+  position: relative;
+  padding: 12px 18px;
+  width: 100%;
+
+  background-color: var(--color-background-input);
+  color: #FFF;
+
+  outline: none;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-input);
+  font-size: 16px;
+
+  &:focus + .labelSaleDate,
+  &:not(:placeholder-shown) + .labelSaleDate {
+    top: -10px;
+    font-size: 12px;
+    background-color: var(--color-background-modal);
+    z-index: 2;
+  }
+
+  &[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    -webkit-appearance: none;
+    appearance: none;
+
+    filter: invert(1) brightness(2);
+
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+}
+
+.labelSaleDate {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  color: var(--color-input-label);
+  transition: 0.2s ease all;
+  pointer-events: none;
+  font-size: 16px;
+  padding-inline: 4px;
+}
+
+.inputBtnAll {
+  padding: 6px;
+  position: absolute;
+
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.icon {
+  position: absolute;
+  right: 12px;
+  top: 30%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #aaa;
+  cursor: help;
+  user-select: none;
+
+  .tooltipText {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 4px 6px;
+    border-radius: 4px;
+    position: absolute;
+    bottom: 150%;
+    left: 0%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: normal;
+    opacity: 0;
+    transition: opacity 0.2s;
+
+    min-width: 160px;
+    max-width: 200px;
+  }
+
+  &:hover .tooltipText {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+.btnCurrentPrice {
+  padding: 6px 10px;
+  margin-top: 4px;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  color: #FFF;
+  background-color: var(--color-background-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: 6px;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:enabled:not(.active):active {
+    transform: translateY(1px);
+    scale: 0.98;
+  }
+
+  &.active {
+    background-color: rgba(96, 201, 16, 0.2);
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(0,0,0,0.08);
+    outline-offset: 2px;
+  }
+}
+
+.btnConfirm {
+  display: block;
+  width: 50%;
+  background-color: #FFF;
+  padding: 12px 0px;
+  margin: 24px auto 0;
+  border-radius: 10px;
+
+  font-family: var(--main-font);
+  font-size: 16px;
+  font-weight: 600;
+
+  transition: all 0.2s ease;
+
+  &:enabled:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.25);
+    background-color: #f8f8f8;
+  }
+
+  &:enabled:active {
+    transform: translateY(1px);
+    box-shadow: none;
+    background-color: #EEE;
+    scale: 0.98;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.77;
+  }
+}
