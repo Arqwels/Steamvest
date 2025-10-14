@@ -1,5 +1,6 @@
 import { baseApi } from './baseApi';
 import { Portfolio } from '../types';
+import { investmentApi } from './investmentApi';
 
 export const portfolioApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -9,25 +10,35 @@ export const portfolioApi = baseApi.injectEndpoints({
     }),
 
     activatePortfolio: builder.mutation<void, number|null>({
-      query: (id) => ({
-        url: `/portfolio/${id}/activate`,
+      query: (portfolioId) => ({
+        url: `/portfolio/${portfolioId}/activate`,
         method: 'PATCH',
       }),
       invalidatesTags: [{ type: 'Portfolio' }],
     }),
 
-    createPortfolio: builder.mutation<Portfolio, { namePortfolio: string }> ({
+    createPortfolio: builder.mutation<Portfolio, { portfolioId: number; namePortfolio: string }> ({
       query: (body) => ({
         url: '/portfolio',
         method: 'POST',
         body,
       }),
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            investmentApi.endpoints.getInvestments.initiate({ portfolioId: data.id })
+          );
+        } catch (error) {
+          console.error('Ошибка при создании портфеля', error);
+        }
+      },
       invalidatesTags: [{ type: 'Portfolio' }],
     }),
 
-    renamePortfolio: builder.mutation<Portfolio, { id: number; namePortfolio: string }>({
-      query: ({ id, namePortfolio }) => ({
-        url: `/portfolio/${id}`,
+    renamePortfolio: builder.mutation<Portfolio, { portfolioId: number; namePortfolio: string }>({
+      query: ({ portfolioId, namePortfolio }) => ({
+        url: `/portfolio/${portfolioId}`,
         method: 'PATCH',
         body: { namePortfolio },
       }),
@@ -36,8 +47,8 @@ export const portfolioApi = baseApi.injectEndpoints({
 
     // Возможно сделать получение статуса (message) и выводить его на клиенте в уведомление
     deletePortfolio: builder.mutation<void, number>({
-      query: (id) => ({
-        url: `/portfolio/${id}`,
+      query: (portfolioId) => ({
+        url: `/portfolio/${portfolioId}`,
         method: 'DELETE',
       }),
       invalidatesTags: [{ type: 'Portfolio' }],
