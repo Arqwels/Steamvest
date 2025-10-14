@@ -1,5 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '../store';
+import type { RootState, AppDispatch } from '../store';
+import { clearActivePortfolio } from './activePortfolioSlice';
+import { clearAllInvestments } from './investmentsSlice';
+import { baseApi } from '../../api/baseApi';
 
 interface User {
   email: string;
@@ -59,3 +62,15 @@ export const selectInitialized = (state: RootState) => state.auth.initialized;
 // Пользователь считается залогиненным, если есть токен инициализация завершена
 export const selectIsLoggedIn = (state: RootState) =>
   Boolean(state.auth.accessToken);
+
+export const logoutAndReset = () => (dispatch: AppDispatch) => {
+  // очищаем auth
+  dispatch(logout());
+
+  // очищаем пользовательские слайсы
+  dispatch(clearActivePortfolio());
+  dispatch(clearAllInvestments());
+
+  // сбрасываем кеш RTK Query
+  dispatch(baseApi.util.resetApiState());
+};
