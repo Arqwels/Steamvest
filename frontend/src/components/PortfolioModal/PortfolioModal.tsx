@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { Modal } from '../Modal/Modal';
 import styles from './PortfolioModal.module.scss';
-import PlusIcon from '../Svg/PlusIcon';
+import { BtnCloseModal } from '../Modal/BtnCloseModal';
 
 interface PortfolioModalProps {
   title: string;
@@ -67,9 +67,10 @@ export const PortfolioModal = ({
         >
           {isLoading ? 'Сохранение...' : submitLabel}
         </button>
-        <button onClick={() => setActive(false)} className={styles.closeModal}>
-          <PlusIcon />
-        </button>
+        <BtnCloseModal
+          onClose={() => setActive(false)}
+          position={{ top: "1%", right: "1%" }}
+        />
       </div>
     </Modal>
   )

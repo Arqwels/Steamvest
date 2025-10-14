@@ -52,13 +52,17 @@ const investmentsSlice = createSlice({
       delete state.metaByPortfolio[pid];
     },
 
+    clearAllInvestments(state) {
+      Object.assign(state, initialState);
+    },
+
     setMeta(state, action: PayloadAction<{ portfolioId: number; meta: Meta }>) {
       state.metaByPortfolio[action.payload.portfolioId] = action.payload.meta;
     },
   },
 });
 
-export const { upsertMany, upsertOne, removeOne, clearPortfolio, setMeta } =
+export const { upsertMany, upsertOne, removeOne, clearPortfolio, clearAllInvestments, setMeta } =
   investmentsSlice.actions;
 export default investmentsSlice.reducer;
 

@@ -1,0 +1,50 @@
+// TableSalesCell_Object.tsx
+.object {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
+  > img {
+    height: 50px;
+    object-fit: cover;
+  }
+}
+
+.wrap {
+  text-align: center;
+}
+
+.investmentCount {
+  color: #9E9E9E;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+
+  .tooltipText {
+    visibility: hidden;
+    opacity: 0;
+    width: max-content;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 4px 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.3s;
+    font-size: 12px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  &:hover .tooltipText {
+    visibility: visible;
+    opacity: 1;
+  }
+}

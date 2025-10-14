@@ -13,6 +13,7 @@ import {
   setMeta,
   upsertMany,
 } from '../../stores/reducers/investmentsSlice';
+import { Loader } from '../Loader/Loader';
 
 export const Table = () => {
   const dispatch = useAppDispatch();
@@ -91,9 +92,7 @@ export const Table = () => {
     };
   }, [loadMore]);
 
-  if (isFirstLoad && loadingRef.current) {
-    return <div className={styles.loadingMessage}>Загрузка...</div>;
-  }
+  if (isFirstLoad && loadingRef.current) return <Loader />;
 
   if (isFirstLoad && error) {
     return <div className={styles.errorMessage}>Ошибка загрузки данных</div>;

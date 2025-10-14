@@ -1,5 +1,5 @@
 const ExcelJS = require('exceljs');
-const { Invest, Skins, Portfolio } = require('../models');
+const { Invest, Skins, Portfolio, Sale } = require('../models');
 const ApiError = require('../exceptions/apiError');
 const { validationResult } = require('express-validator');
 const skinsHistoryPrice = require('../services/skinsHistoryPrice');
@@ -306,6 +306,90 @@ class InvestmentController {
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error: 'Ошибка при получении всего инвестиций, тек. баланса и общей прибыли' });
+    }
+  }
+
+  /**
+   * @router POST /api/investment/sale
+   * @description Продажа инвестиции полностью или частично
+   */
+  async saleInvestments(req, res) {
+    const trx = await sequelize.transaction();
+    try {
+      const { investmentId, portfolioId, countSale, priceSale, saleDate } = req.body;
+      const userId = req.user.id;
+
+      const countToSell = Number(countSale);
+      if (!Number.isInteger(countToSell) || countToSell <= 0) {
+        await trx.rollback();
+        return res.status(400).json({ message: 'Неверное количество для продажи' });
+      }
+
+      const investment = await Invest.findByPk(investmentId, {
+        include: [{ model: Portfolio, as: 'portfolio', where: { userId } }],
+        transaction: trx,
+        lock: trx.LOCK.UPDATE,
+      });
+
+      if (!investment) {
+        await trx.rollback();
+        return res.status(404).json({ message: 'Инвестиция не найдена!' });
+      }
+
+      // Убедимся, что берем правильное поле (countItems)
+      const currentQty = Number(investment.countItems || 0);
+
+      if (countToSell > currentQty) {
+        await trx.rollback();
+        return res.status(400).json({ message: 'Недостаточно предметов для продажи' });
+      }
+
+      const isFullSale = countToSell === currentQty;
+
+      // создаём запись в истории продаж
+      const sale = await Sale.create({
+        skinId: investment.idItem,
+        portfolioId,
+        countSale: countToSell,
+        priceSale,
+        priceBuy: investment.buyPrice,
+        dateSale: saleDate ? new Date(saleDate) : new Date(),
+      }, { transaction: trx });
+
+      console.log('Создаём продажу:', {
+        skinId: investment.idItem,
+        portfolioId,
+        countSale: countToSell,
+        priceSale,
+        priceBuy: investment.buyPrice,
+        dateSale: saleDate ? new Date(saleDate) : new Date(),
+      });
+
+      // обновляем/удаляем инвестицию
+      if (isFullSale) {
+        await Invest.destroy({ where: { id: investmentId }, transaction: trx });
+        await trx.commit();
+        return res.status(200).json({
+          ok: true,
+          saleId: sale.id,
+          removedId: investmentId
+        });
+      } else {
+        const newQty = currentQty - countToSell;
+        await investment.update({ countItems: newQty }, { transaction: trx });
+        // перезагрузим модель, чтобы вернуть актуальные поля
+        await investment.reload({ transaction: trx });
+        await trx.commit();
+        return res.status(200).json({
+          ok: true,
+          saleId: sale.id,
+          investment: investment.get({ plain: true })
+        });
+      }
+    } catch (error) {
+      if (trx) await trx.rollback();
+      console.error('Ошибка при продаже инвестиции', error);
+      return res.status(500).json({ message: 'Ошибка при продаже инвестиции!' });
     }
   }
 }

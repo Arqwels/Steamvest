@@ -10,6 +10,9 @@
   position: relative;
 
   font-size: 16px;
+
+  border-radius: 20px;
+  border: 1px solid var(--color-border-input);
 }
 
 /* Стили для блока с изображением */
@@ -20,6 +23,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  border-radius: 20px 0 0 20px;
 }
 
 .image {
@@ -43,7 +47,7 @@
 /* Основной контент */
 .content {
   flex: 1;
-  padding: 20px;
+  padding: 40px 20px 20px 20px;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -199,6 +203,7 @@
   flex-direction: row;
   justify-content: space-around;
   gap: 10px;
+  margin-top: 8px;
 }
 
 .button {
@@ -232,28 +237,6 @@
 
 .sellButton {
   background-color: #e94e77;
-}
-
-/* Кнопка закрытия модального окна */
-.closeModal {
-  position: absolute;
-  cursor: pointer;
-  right: 1%;
-  top: 2%;
-
-  width: 32px;
-  height: 32px;
-
-  color: #FFF;
-
-  &:hover {
-    background: rgba(256, 256, 256, 0.3);
-    border-radius: 5px;
-  }
-
-  svg {
-    width: 100%;
-  }
 }
 
 // Горизонтальная линия-разделитель между секциями

@@ -10,6 +10,7 @@ interface FloatingLabelInputProps {
   style?: CSSProperties;
   disabled?: boolean;
   decimalPlaces?: number;
+  maxValue?: number;
 }
 
 export const FloatingLabelInput: FC<FloatingLabelInputProps> = ({ 
@@ -20,7 +21,8 @@ export const FloatingLabelInput: FC<FloatingLabelInputProps> = ({
   type = 'integer',
   style,
   disabled,
-  decimalPlaces = 2
+  decimalPlaces = 2,
+  maxValue,
 }) => {
   const [focused, setFocused] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -55,9 +57,13 @@ export const FloatingLabelInput: FC<FloatingLabelInputProps> = ({
 
     if (type === 'integer') {
       rawValue = rawValue.replace(/\./g, '');
-      const newValue = parseInt(rawValue, 10);
+      let newValue = parseInt(rawValue, 10);
       if (!isNaN(newValue)) {
-        setInputValue(rawValue);
+        // Ограничение по максимуму
+        if (maxValue !== undefined && newValue > maxValue) {
+          newValue = maxValue;
+        }
+        setInputValue(newValue.toString());
         onChange(newValue);
       }
       return;

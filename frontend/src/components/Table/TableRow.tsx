@@ -8,7 +8,7 @@ import { TableCell_CurrentProfit } from './TableCell/TableCell_CurrentProfit';
 import { TableCell_Holdings } from './TableCell/TableCell_Holdings';
 import { TableData } from '../../types';
 import { InvestItem } from '../Invest/InvestItem';
-import { useDeleteInvestmentMutation, useUpdateInvestmentMutation } from '../../api/investmentApi';
+import { useUpdateInvestmentMutation } from '../../api/investmentApi';
 import { useAppSelector } from '../../stores/hooks';
 
 export const TableRow = ({ row }: { row: TableData }) => {
@@ -17,7 +17,6 @@ export const TableRow = ({ row }: { row: TableData }) => {
 
   // RTK Query мутации
   const [updateInvestment, { isLoading: isUpdating }] = useUpdateInvestmentMutation();
-  const [deleteInvestment, { isLoading: isDeleting }] = useDeleteInvestmentMutation();
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -43,16 +42,7 @@ export const TableRow = ({ row }: { row: TableData }) => {
     }
   };
 
-  // колбэк для «продажи» (удаления)
-  //! Написать логику по продаже инвестиций (Продумать всё)
-  const handleSell = async () => {
-    try {
-      await deleteInvestment({ id: row.id, portfolioId }).unwrap();
-      setModalActive(false);
-    } catch (error) {
-      console.log('Error2: ', error);
-    }
-  };
+  //! Придумать можно кнопку на удаление
 
   return (
     <>
@@ -104,9 +94,7 @@ export const TableRow = ({ row }: { row: TableData }) => {
         active={modalActive}
         setActive={setModalActive}
         isUpdating={isUpdating}
-        isDeleting={isDeleting}
         onSaveChanges={handleSave}
-        onSell={handleSell}
       />
     </>
   );

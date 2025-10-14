@@ -29,3 +29,24 @@
     transform: scale(1);
   }
 }
+
+/* Кнопка закрытия модального окна */
+.closeModal {
+  position: absolute;
+  cursor: pointer;
+
+  width: 32px;
+  height: 32px;
+
+  color: #FFF;
+  background-color: #444444;
+  border-radius: 5px;
+
+  &:hover {
+    background: rgba(256, 256, 256, 0.3);
+  }
+
+  svg {
+    width: 100%;
+  }
+}

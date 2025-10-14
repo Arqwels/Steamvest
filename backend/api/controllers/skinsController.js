@@ -1,23 +1,42 @@
 const { Op } = require('sequelize');
-const { Skins, Invest } = require('../models');
+const sequelize = require('../../db');
+const { Skins } = require('../models');
 
 class SkinsController {
-  async searchSkins (req, res) {
-    try {
-      const searchQuery = req.query.q;
+  escapeLike(str) {
+    return str.replace(/[%_]/g, '\\$&');
+  }
 
-      if (!searchQuery) {
-        return res.status(400).json({ message: 'Для поиска необходимо значение!' });
-      }
+  searchSkins = async (req, res) => {
+    try {
+      const searchQueryRaw = req.query.q?.trim();
+      if (!searchQueryRaw) return res.status(400).json({ message: 'Для поиска необходимо значение!' });
+
+      const searchQuery = this.escapeLike(searchQueryRaw.toLowerCase());
+      const limit = Math.min(Number(req.query.limit) || 5, 50);
+      const offset = Number(req.query.offset) || 0;
 
       const skins = await Skins.findAll({
         where: {
           [Op.or]: [
-            { market_name: { [Op.like]: `%${searchQuery}%` } },
-            { market_hash_name: { [Op.like]: `%${searchQuery}%` } }
+            sequelize.where(
+              sequelize.fn('LOWER', sequelize.col('market_name')),
+              { [Op.like]: `${searchQuery}%` }
+            ),
+            sequelize.where(
+              sequelize.fn('LOWER', sequelize.col('market_hash_name')),
+              { [Op.like]: `${searchQuery}%` }
+            ),
           ]
         },
-        limit: 5
+        limit,
+        offset,
+        order: [
+          [sequelize.literal(`CASE 
+            WHEN LOWER("market_name") LIKE '${searchQuery}%' THEN 0
+            WHEN LOWER("market_hash_name") LIKE '${searchQuery}%' THEN 1
+            ELSE 2 END`), 'ASC']
+        ]
       });
 
       res.json(skins);

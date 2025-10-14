@@ -1,4 +1,4 @@
-const { Invest, Skins, SkinPriceHistory, Portfolio } = require('./');
+const { Invest, Skins, SkinPriceHistory, Portfolio, Sale } = require('./');
 const Token = require('./tokenModel');
 const User = require('./userModel');
 
@@ -64,6 +64,30 @@ const initAssociations = () => {
     as: 'user',
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE'
+  });
+
+  // Sale <-> Skins (какой скин продали)
+  Sale.belongsTo(Skins, {
+    foreignKey: 'skinId',
+    as: 'skin',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+  Skins.hasMany(Sale, {
+    foreignKey: 'skinId',
+    as: 'sales'
+  });
+
+  // Sale <-> Portfolio (продажа привязана к портфелю)
+  Sale.belongsTo(Portfolio, {
+    foreignKey: 'portfolioId',
+    as: 'portfolio',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+  Portfolio.hasMany(Sale, {
+    foreignKey: 'portfolioId',
+    as: 'sales'
   });
 };
 
