@@ -2,9 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useLogoutMutation } from '../../api/authApi';
 import { useAppDispatch } from '../../stores/hooks';
 import styles from './Header.module.scss';
-import { logout } from '../../stores/reducers/authSlice';
+import { logoutAndReset } from '../../stores/reducers/authSlice';
 import { Routes } from '../../routes/routesPaths';
-import { baseApi } from '../../api/baseApi';
 
 export const Header = () => {
   const [logoutApi] = useLogoutMutation();
@@ -16,16 +15,14 @@ export const Header = () => {
       .unwrap()
       .catch(() => {});
 
-    dispatch(logout());
-
-    dispatch(baseApi.util.resetApiState());
+    dispatch(logoutAndReset());
 
     navigate(Routes.Public.Login, { replace: true });
   };
 
   return (
     <header className={styles.header}>
-      <h1 className={styles.title}>SteamFol</h1>
+      <h1 className={styles.title}>Steamvest</h1>
 
       <div className={styles.profile}>
         <button className={styles.btn}>Профиль</button>
