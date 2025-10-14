@@ -3,6 +3,8 @@ import {
   CreateInvestmentRequest,
   Investment,
   InvestmentsResponse,
+  SaleInvestmentRequest,
+  SaleInvestmentResponse,
   SummaryInvestments,
   UpdateInvestmentRequest,
 } from '../types';
@@ -81,7 +83,9 @@ export const investmentApi = baseApi.injectEndpoints({
           handleQueryError('createInvestment', error, { newInvestment });
         }
       },
-      invalidatesTags: [{ type: 'Investments' }],
+      invalidatesTags: (_result, _error, { portfolioId }) => [
+        { type: 'Investments', id: `LIST-${portfolioId}` }
+      ],
     }),
 
     updateInvestment: builder.mutation<
@@ -133,6 +137,29 @@ export const investmentApi = baseApi.injectEndpoints({
       query: (portfolioId) => `/investment/${portfolioId}/summary`,
       providesTags: [{ type: 'Investments', id: 'SUMMARY' }],
     }),
+
+    saleInvestment: builder.mutation<SaleInvestmentResponse, SaleInvestmentRequest>({
+      query: (body) => ({
+        url: '/investment/sale',
+        method: 'POST',
+        body,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          if ('investment' in data) {
+            dispatch(upsertOne(data.investment));
+          } else if ('removedId' in data) {
+            dispatch(removeOne(data.removedId));
+          }
+        } catch (error) {
+          handleQueryError('saleInvestment', error, { arg });
+        }
+      },
+      invalidatesTags: (_result, _error, { portfolioId }) => [
+        { type: 'Investments', id: `LIST-${portfolioId}` },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -144,4 +171,5 @@ export const {
   useUpdateInvestmentMutation,
   useDeleteInvestmentMutation,
   useSummaryInvestmentsQuery,
+  useSaleInvestmentMutation,
 } = investmentApi;
