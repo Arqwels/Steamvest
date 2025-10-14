@@ -84,7 +84,8 @@ export const investmentApi = baseApi.injectEndpoints({
         }
       },
       invalidatesTags: (_result, _error, { portfolioId }) => [
-        { type: 'Investments', id: `LIST-${portfolioId}` }
+        { type: 'Investments', id: `LIST-${portfolioId}` },
+        { type: 'Investments', id: 'SUMMARY' }
       ],
     }),
 
@@ -158,6 +159,7 @@ export const investmentApi = baseApi.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { portfolioId }) => [
         { type: 'Investments', id: `LIST-${portfolioId}` },
+        { type: 'Investments', id: 'SUMMARY' }
       ],
     }),
   }),
