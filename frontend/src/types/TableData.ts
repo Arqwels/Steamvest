@@ -11,4 +11,8 @@ export interface TableData {
   count_items: number;
   buy_price: number;
   currencyCode?: string;
+  investment_value: number;
+  profit_value: number;
+  profit_percent: number;
+  assets_value: number;
 }

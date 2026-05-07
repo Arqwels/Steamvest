@@ -100,3 +100,76 @@ table > thead > tr > th:first-child {
 .downArrow {
   animation: bounceDown 1.2s infinite;
 }
+
+// Sort header
+.sortableTh {
+  position: relative;
+  padding: 18px 0;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.thFirst {
+  width: 300px;
+  padding-left: 10px;
+  text-align: start;
+}
+
+.thInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease;
+}
+
+.sortableThActive .thInner {
+  color: #fff;
+}
+
+.sortIcons {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0;
+  transform: translateX(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+
+  .sortableTh:hover & {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sortIconsActive {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+}
+
+.sortArrow {
+  font-size: 7px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.25);
+  transition: color 0.15s ease;
+}
+
+.sortArrowActive {
+  color: #818cf8; // indigo-400 — хорошо читается на тёмном
+}
+
+.sortUnderline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: #818cf8;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.2s ease;
+}
+
+.sortUnderlineActive {
+  transform: scaleX(1);
+}

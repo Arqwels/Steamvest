@@ -56,50 +56,55 @@ class InvestmentController {
   async receivingInvestments (req, res) {
     try {
       const userId = req.user.id;
-      const { portfolioId, limit: qLimit, lastId: qLastId } = req.query;
+      const { portfolioId, limit: qLimit, offset: qOffset, sortBy = 'id', order = 'DESC' } = req.query;
 
-      let limit = qLimit !== undefined ? Number(qLimit) : 25;
-      if (Number.isNaN(limit) || limit <= 0) limit = 25;
-      const MAX_LIMIT = 100;
-      if (limit > MAX_LIMIT) limit = MAX_LIMIT;
+      let limit = qLimit !== undefined ? Number(qLimit) : 20;
+      if (Number.isNaN(limit) || limit <= 0) limit = 20;
+      if (limit > 100) limit = 100;
 
+      const offset = qOffset !== undefined ? Number(qOffset) : 0;
       const pid = portfolioId ? Number(portfolioId) : null;
-      if (portfolioId && isNaN(pid)) {
-        return res.status(400).json({ message: 'Неверный портфель ID' });
-      }
+      if (portfolioId && isNaN(pid)) return res.status(400).json({ message: 'Неверный портфель ID' });
 
       const where = pid ? { portfolioId: pid } : {};
-      if (qLastId !== undefined && qLastId !== null && qLastId !== '') {
-        const lastId = Number(qLastId);
-        if (!Number.isNaN(lastId)) {
-          // сортировка DESC — берем записи c id < lastId
-          where.id = { [Op.lt]: lastId };
-        }
-      }
+
+      const VIRTUAL_SORT_FIELDS = ['changePercent', 'changePrice'];
+      const isVirtualSort = VIRTUAL_SORT_FIELDS.includes(sortBy);
+
+      const sortMap = {
+        id: 'id',
+        price_item: sequelize.col('skin.price_skin'),
+        investmentValue: sequelize.literal(`"invest"."buyPrice" * "invest"."countItems"`),
+        buyPrice: sequelize.col('invest.buyPrice'),
+        profitValue: sequelize.literal(`("skin"."price_skin" - "invest"."buyPrice") * "invest"."countItems"`),
+        profitPercent: sequelize.literal(`CASE WHEN "invest"."buyPrice" > 0 THEN (("skin"."price_skin" - "invest"."buyPrice") / "invest"."buyPrice") * 100 ELSE 0 END`),
+        assetsValue: sequelize.literal(`"skin"."price_skin" * "invest"."countItems"`),
+      };
+
+      const sortValue = sortMap[sortBy] || 'id';
+      const sortOrder = typeof order === 'string' && order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
       const investments = await Invest.findAll({
         where,
+        attributes: {
+          include: [
+            [sequelize.literal(`"invest"."buyPrice" * "invest"."countItems"`), 'investmentValue'],
+            [sequelize.literal(`("skin"."price_skin" - "invest"."buyPrice") * "invest"."countItems"`), 'profitValue'],
+            [sequelize.literal(`CASE WHEN "invest"."buyPrice" > 0 THEN (("skin"."price_skin" - "invest"."buyPrice") / "invest"."buyPrice") * 100 ELSE 0 END`), 'profitPercent'],
+            [sequelize.literal(`"skin"."price_skin" * "invest"."countItems"`), 'assetsValue'],
+          ],
+        },
         include: [
-          {
-            model: Portfolio,
-            as: 'portfolio',
-            where: { userId },
-            attributes: ['id', 'namePortfolio']
-          },
-          {
-            model: Skins,
-            as: 'skin'
-          },
+          { model: Portfolio, as: 'portfolio', where: { userId }, attributes: ['id', 'namePortfolio'] },
+          { model: Skins, as: 'skin' },
         ],
-        limit,
-        order: [['id', 'DESC']],
+        limit: isVirtualSort ? undefined : limit,
+        offset: isVirtualSort ? undefined : (offset > 0 ? offset : undefined),
+        order: isVirtualSort ? [['id', 'DESC']] : [[sortValue, sortOrder], ['id', 'DESC']],
       });
 
-      const idItem = investments.map(item => item.idItem);
-      let historyMap = {};
-      if (idItem.length > 0) {
-        historyMap = await skinsHistoryPrice.getHistoryMap(idItem);
-      }
+      const idItems = investments.map((item) => item.idItem);
+      const historyMap = idItems.length > 0 ? await skinsHistoryPrice.getHistoryMap(idItems) : {};
 
       for (const inv of investments) {
         const { changePrice = 0, changePercent = 0 } = historyMap[inv.idItem] || {};
@@ -107,12 +112,26 @@ class InvestmentController {
         inv.setDataValue('changePercent', changePercent);
       }
 
-      const last = investments.length ? investments[investments.length - 1].id : null;
-      const hasMore = investments.length === limit;
+      if (isVirtualSort) {
+        investments.sort((a, b) => {
+          const aVal = a.getDataValue(sortBy) ?? 0;
+          const bVal = b.getDataValue(sortBy) ?? 0;
+          return sortOrder === 'ASC' ? aVal - bVal : bVal - aVal;
+        });
 
+        const paginated = investments.slice(offset, offset + limit);
+        const hasMore = investments.length > offset + limit;
+
+        return res.status(200).json({
+          investments: paginated,
+          meta: { lastId: paginated[paginated.length - 1]?.id ?? null, hasMore, limit },
+        });
+      }
+
+      const hasMore = investments.length === limit;
       return res.status(200).json({
         investments,
-        meta: { lastId: last, hasMore, limit },
+        meta: { lastId: investments[investments.length - 1]?.id ?? null, hasMore, limit },
       });
     } catch (error) {
       console.error('Ошибка при получении инвестиций!', error);

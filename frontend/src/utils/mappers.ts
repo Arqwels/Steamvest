@@ -17,6 +17,10 @@ export function mapInvestmentToTableData(investment: Investment): TableData {
     image_url: investment.skin.image_url,
     count_items: investment.countItems,
     buy_price: investment.buyPrice,
-    currencyCode: investment.skin.currency_code
+    currencyCode: investment.skin.currency_code,
+    investment_value: investment.investmentValue,
+    profit_value: investment.profitValue, 
+    profit_percent: investment.profitPercent,
+    assets_value: investment.assetsValue,
   };
 }

@@ -8,6 +8,10 @@ export interface Investment {
   buyPrice: number;
   dateBuyItem: string;
   updatedAt: string;
+  investmentValue: number;
+  profitValue: number;
+  profitPercent: number;
+  assetsValue: number;
   skin: Skin;
   changePercent: number;
   changePrice: number;

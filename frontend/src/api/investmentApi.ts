@@ -20,14 +20,18 @@ export const investmentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getInvestments: builder.query<
       InvestmentsResponse,
-      { portfolioId: number; limit?: number; lastId?: number }
+      {
+        portfolioId: number;
+        limit?: number;
+        offset?: number;
+        sortBy?: string;
+        order?: 'ASC' | 'DESC';
+      }
     >({
-      query: ({ portfolioId, limit = 20, lastId }) => {
-        let query = `/investment?portfolioId=${portfolioId}&limit=${limit}`;
-        if (lastId !== undefined && lastId !== null)
-          query += `&lastId=${lastId}`;
-        return query;
-      },
+      query: ({ portfolioId, limit = 20, offset, sortBy, order }) => ({
+        url: '/investment',
+        params: { portfolioId, limit, offset, sortBy, order },
+      }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -56,10 +60,7 @@ export const investmentApi = baseApi.injectEndpoints({
         result
           ? [
               { type: 'Investments', id: `LIST-${portfolioId}` },
-              ...result.investments.map((inv) => ({
-                type: 'Investments' as const,
-                id: inv.id,
-              })),
+              ...result.investments.map((inv) => ({ type: 'Investments' as const, id: inv.id })),
             ]
           : [{ type: 'Investments', id: `LIST-${portfolioId}` }],
     }),
@@ -112,7 +113,10 @@ export const investmentApi = baseApi.injectEndpoints({
           handleQueryError('updateInvestment', error, { arg });
         }
       },
-      invalidatesTags: [{ type: 'Investments' }],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Investments', id },
+        { type: 'Investments', id: 'SUMMARY' },
+      ],
     }),
 
     deleteInvestment: builder.mutation<

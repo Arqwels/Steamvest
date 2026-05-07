@@ -10,94 +10,102 @@ import {
   clearPortfolio,
   selectInvestmentsByPortfolio,
   selectMetaByPortfolio,
-  setMeta,
-  upsertMany,
 } from '../../stores/reducers/investmentsSlice';
 import { Loader } from '../Loader/Loader';
+import { setSort } from '../../stores/reducers/activePortfolioSlice';
 
 export const Table = () => {
   const dispatch = useAppDispatch();
   const portfolioId = useAppSelector((state) => state.activePortfolio.portfolioId);
-
   const [fetchPage, { error }] = useLazyGetInvestmentsQuery();
 
   const items = useAppSelector((state) => selectInvestmentsByPortfolio(state, portfolioId ?? -1));
   const meta = useAppSelector((state) => selectMetaByPortfolio(state, portfolioId ?? -1));
 
+  const sortBy = useAppSelector((state) => state.activePortfolio.sortBy);
+  const order = useAppSelector((state) => state.activePortfolio.sortOrder);
+
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const loadingRef = useRef(false);
-  const debounceRef = useRef<number | null>(null);
 
-  const loadFirstPage = useCallback(async () => {
-    if (!portfolioId) return;
-    // очищаем предыдущие данные конкретного портфеля
-    dispatch(clearPortfolio(portfolioId));
-    loadingRef.current = true;
-    try {
-      const maybe = await fetchPage({ portfolioId, limit: 20 });
-      // lazy trigger возвращает объект: { data } или { error }
-      if ('data' in maybe && maybe.data) {
-        dispatch(upsertMany(maybe.data.investments));
-        dispatch(setMeta({ portfolioId, meta: maybe.data.meta }));
+  // Загрузка первой страницы или сброс при смене сортировки
+  const loadPage = useCallback(
+    async (params?: { sortBy?: string; order?: 'ASC' | 'DESC' }) => {
+      if (!portfolioId || loadingRef.current) return;
+      loadingRef.current = true;
+
+      const field = params?.sortBy ?? sortBy;
+      const dir = params?.order ?? order;
+
+      console.log('📡 Fetching investments:', { portfolioId, offset: 0, sortBy: field, order: dir });
+
+      try {
+        dispatch(clearPortfolio(portfolioId));
+        await fetchPage({ portfolioId, limit: 20, offset: 0, sortBy: field, order: dir });
+      } catch (err) {
+        console.error('❌ loadPage error', err);
+      } finally {
+        loadingRef.current = false;
+        setIsFirstLoad(false);
       }
-    } catch (error) {
-      console.error('loadFirstPage error', error);
-    } finally {
-      loadingRef.current = false;
-      setIsFirstLoad(false);
-    }
-  }, [portfolioId, dispatch, fetchPage]);
+    },
+    [portfolioId, sortBy, order, dispatch, fetchPage],
+  );
+
+  const changeSort = useCallback(
+    (field: string) => {
+      const nextOrder = sortBy === field ? (order === 'ASC' ? 'DESC' : 'ASC') : 'DESC';
+      dispatch(setSort({ sortBy: field, sortOrder: nextOrder }));
+      loadPage({ sortBy: field, order: nextOrder });
+    },
+    [sortBy, order, loadPage, dispatch],
+  );
 
   const loadMore = useCallback(async () => {
-    if (!portfolioId || loadingRef.current) return;
-    if (meta && meta.hasMore === false) return;
-    const lastId = items.length ? items[items.length - 1].id : undefined;
+    if (!portfolioId || loadingRef.current || !meta?.hasMore) return;
+
     loadingRef.current = true;
+    const offset = items.length;
+
+    console.log('📡 Loading more:', { portfolioId, offset, sortBy, order });
+
     try {
-      const maybe = await fetchPage({ portfolioId, limit: 20, lastId });
-      if ('data' in maybe && maybe.data) {
-        dispatch(upsertMany(maybe.data.investments));
-        dispatch(setMeta({ portfolioId, meta: maybe.data.meta }));
-      }
-    } catch (error) {
-      console.error('loadMore error', error);
+      await fetchPage({ portfolioId, limit: 20, offset, sortBy, order });
+    } catch (err) {
+      console.error('❌ loadMore error', err);
     } finally {
       loadingRef.current = false;
     }
-  }, [portfolioId, items, meta, dispatch, fetchPage]);
+  }, [portfolioId, items.length, meta, sortBy, order, fetchPage]);
 
+  // Первичная загрузка
   useEffect(() => {
-    if (!portfolioId) return;
-    loadFirstPage();
+    if (portfolioId && isFirstLoad) {
+      loadPage();
+    }
   }, [portfolioId]);
 
+  // Скролл-лисенер
   useEffect(() => {
-    const onScroll = (_event: Event) => {
-      if (debounceRef.current) {
-        window.clearTimeout(debounceRef.current);
-      }
-      debounceRef.current = window.setTimeout(() => {
-        const doc = document.documentElement;
-        const nearBottom = doc.scrollHeight - (doc.scrollTop + window.innerHeight) < 120;
-        if (nearBottom && !loadingRef.current) {
+    let debounceId: ReturnType<typeof setTimeout> | null = null;
+    const onScroll = () => {
+      if (loadingRef.current || debounceId) return;
+      debounceId = setTimeout(() => {
+        if (document.documentElement.scrollHeight - (window.scrollY + window.innerHeight) < 120) {
           loadMore();
         }
-      }, 120);
+        debounceId = null;
+      }, 100);
     };
-
-    document.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      document.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
+      if (debounceId) clearTimeout(debounceId);
     };
   }, [loadMore]);
 
   if (isFirstLoad && loadingRef.current) return <Loader />;
-
-  if (isFirstLoad && error) {
-    return <div className={styles.errorMessage}>Ошибка загрузки данных</div>;
-  }
-
+  if (isFirstLoad && error) return <div className={styles.errorMessage}>Ошибка загрузки данных</div>;
   if (!isFirstLoad && !error && items.length === 0) {
     return (
       <div className={styles.emptyWrapper}>
@@ -114,7 +122,7 @@ export const Table = () => {
 
   return (
     <table className={styles.table}>
-      <TableHeader />
+      <TableHeader onSort={changeSort} activeSort={sortBy} sortOrder={order} />
       <TableBody data={tableData} />
     </table>
   );

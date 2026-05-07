@@ -15,6 +15,8 @@ type TableCell_CurrentProfitProps = {
   price_item: number;
   buy_price: number;
   count_items: number;
+  profit_value: number;
+  profit_percent: number;
   currencyCode?: string;
 };
 
@@ -22,30 +24,30 @@ export const TableCell_CurrentProfit = ({
   price_item,
   buy_price,
   count_items,
+  profit_value,
+  profit_percent,
   currencyCode,
 }: TableCell_CurrentProfitProps) => {
   const invest = calcInvest(count_items, buy_price);
   const assets = calcAssets(price_item, count_items);
   const assetsNet = calcAssetsNet(assets, COMMISSION_RATE);
 
-  const currentProfit = calcCurrentProfit(assets, invest);
   const currentProfitNet = calcCurrentProfitNet(assets, assetsNet, invest);
-  const currentProfitPercent = calcCurrentProfitPercent(currentProfit, invest);
 
-  const cls = getChangeClass(currentProfit);
+  const cls = getChangeClass(profit_value);
   const netCls = getChangeClass(currentProfitNet);
 
   return (
     <td className={`${styles.currentProfit} ${cls} ${styles.wrap}`}>
       <div>
         <span style={{ marginRight: '8px' }}>
-          {formatNumber(currentProfit, { currency: currencyCode })}
+          {formatNumber(profit_value, { currency: currencyCode })}
         </span>
         <span className={netCls}>
           ({formatNumber(currentProfitNet, { currency: currencyCode })})
         </span>
       </div>
-      <p>{currentProfitPercent}%</p>
+      <p>{profit_percent.toFixed(2)}%</p>
     </td>
   );
 };

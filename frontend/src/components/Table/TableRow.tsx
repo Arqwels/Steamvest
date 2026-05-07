@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TableCell_Object } from './TableCell/TableCell_Object';
-import { TableCell_Price24h } from './TableCell/TableCell_Price24h';
+import { TableCell_CurrentPrice } from './TableCell/TableCell_CurrentPrice';
 import { TableCell_24hProfit } from './TableCell/TableCell_24hProfit';
 import { TableCell_InvestmentsAndCount } from './TableCell/TableCell_InvestmentsAndCount';
 import { TableCell_BuyPrice } from './TableCell/TableCell_BuyPrice';
@@ -10,6 +10,7 @@ import { TableData } from '../../types';
 import { InvestItem } from '../Invest/InvestItem';
 import { useUpdateInvestmentMutation } from '../../api/investmentApi';
 import { useAppSelector } from '../../stores/hooks';
+import { TableCell_Percent24h } from './TableCell/TableCell_Percent24h';
 
 export const TableRow = ({ row }: { row: TableData }) => {
   const [modalActive, setModalActive] = useState(false);
@@ -57,10 +58,12 @@ export const TableRow = ({ row }: { row: TableData }) => {
           item_hash_name={row.market_hash_name}
           item_name={row.market_name}
         />
-        <TableCell_Price24h
+        <TableCell_CurrentPrice
           price_item={row.price_item}
-          change_price_percent_24h={row.change_price_percent_24h}
           currencyCode={row.currencyCode}
+        />
+        <TableCell_Percent24h
+          change_price_percent_24h={row.change_price_percent_24h}
         />
         <TableCell_24hProfit
           count_items={row.count_items}
@@ -80,6 +83,8 @@ export const TableRow = ({ row }: { row: TableData }) => {
           price_item={row.price_item}
           buy_price={row.buy_price}
           count_items={row.count_items}
+          profit_value={row.profit_value}
+          profit_percent={row.profit_percent}
           currencyCode={row.currencyCode}
         />
         <TableCell_Holdings

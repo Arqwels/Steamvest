@@ -39,6 +39,10 @@ export const PortfolioHeader = ({
 
   const activeView = useAppSelector(state => state.activePortfolio.activeView);
 
+  const profitMode = useAppSelector(
+    state => state.activePortfolio.profitMode
+  );
+
   const tabs = useMemo(() => {
     if (portfolios.length === 0) return ['Local Portfolio'];
     return portfolios.map(p => p.namePortfolio);
@@ -132,6 +136,7 @@ export const PortfolioHeader = ({
           {settingsOpen && (
             <SettingsMenu
               activeView={activeView}
+              profitMode={profitMode}
               onRename={handleOpenRename}
               onDelete={handleDelete}
               onClose={() => setSettingsOpen(false)}
