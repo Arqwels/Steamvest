@@ -4,9 +4,7 @@ import { getChangeClass } from '../../../utils/getChangeClass';
 import {
   calcAssets,
   calcAssetsNet,
-  calcCurrentProfit,
   calcCurrentProfitNet,
-  calcCurrentProfitPercent,
   calcInvest,
 } from '../../../utils/calculations';
 import { COMMISSION_RATE } from '../../../utils/config';
