@@ -14,7 +14,7 @@ interface InvestItemProps {
   setActive: (active: boolean) => void;
   isUpdating?: boolean;
   isDeleting?: boolean;
-  onSaveChanges?: (countItems: number, buyPrice: number) => void;
+  onSaveChanges?: (countItems: number, buyPrice: number, comment: string) => void;
   onDell?: () => void;
 }
 
@@ -43,6 +43,7 @@ export const InvestItem = ({
   const idBuyPrice = useId();
   const [countItems, setCountItems] = useState<number>(count_items);
   const [buyPrice, setBuyPrice] = useState<number>(buy_price);
+  const [comment, setComment] = useState<string>(data.comment ?? '');
   const [saleSkinModalActive, setSaleSkinModalActive] = useState<boolean>(false);
 
   const changeCount = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +62,7 @@ export const InvestItem = ({
     if (active) {
       setCountItems(data.count_items);
       setBuyPrice(data.buy_price);
+      setComment(data.comment ?? '');
     }
   }, [active, data]);
 
@@ -143,9 +145,27 @@ export const InvestItem = ({
               </div>
             </section>
 
+            <div className={styles.commentWrapper}>
+              <div className={styles.inputWrapper}>
+                <textarea
+                  placeholder=" "
+                  maxLength={60}
+                  className={styles.inputField}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  disabled={isUpdating}
+                  rows={2}
+                />
+                <label className={styles.inputLabel}>Комментарий</label>
+              </div>
+              <span className={`${styles.commentCounter} ${comment.length > 45 ? styles.nearLimit : ''}`}>
+                {comment.length}/60
+              </span>
+            </div>
+
             <footer className={styles.actions}>
               <button
-                onClick={() => onSaveChanges?.(countItems, buyPrice)}
+                onClick={() => onSaveChanges?.(countItems, buyPrice, comment)}
                 className={`${styles.button} ${styles.saveButton}`}
                 disabled={isUpdating}
               >

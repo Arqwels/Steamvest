@@ -29,6 +29,11 @@ const Invest = sequelize.define('invest', {
     type: DataTypes.DATE,
     allowNull: false
   },
+  comment: {
+    type: DataTypes.STRING(60),
+    allowNull: true,
+    defaultValue: null,
+  },
 }, {
   timestamps: true,
   createdAt: false

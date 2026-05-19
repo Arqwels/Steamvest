@@ -158,8 +158,8 @@ class InvestmentController {
       }
 
       // Обновляем только проверенные поля
-      const { countItems, buyPrice } = req.body;
-      await investment.update({ countItems, buyPrice });
+      const { countItems, buyPrice, comment } = req.body;
+      await investment.update({ countItems, buyPrice, comment });
 
       const updated = await Invest.findByPk(investmentId, {
         include: [

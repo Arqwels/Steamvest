@@ -27,7 +27,7 @@ export const TableRow = ({ row }: { row: TableData }) => {
   };
 
   // колбэк для сохранения (обновления)
-  const handleSave = async (countItems: number, buyPrice: number) => {
+  const handleSave = async (countItems: number, buyPrice: number, comment: string) => {
     try {
       await updateInvestment({
         id: row.id,
@@ -36,6 +36,7 @@ export const TableRow = ({ row }: { row: TableData }) => {
         dateBuyItem: row.dateBuyItem,
         countItems,
         buyPrice,
+        comment,
       }).unwrap();
       setModalActive(false);
     } catch (error) {

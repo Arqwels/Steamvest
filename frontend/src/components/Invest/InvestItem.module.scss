@@ -197,6 +197,91 @@
   }
 }
 
+// Секция Комментарии
+.commentWrapper {
+  position: relative;
+  margin-top: 20px;
+  padding-bottom: 20px;
+
+  .inputWrapper {
+    display: block;
+  }
+
+  textarea {
+    resize: none;
+    padding: 16px 10px;
+  }
+}
+
+.commentCounter {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 11px;
+  color: #888;
+  transition: color 0.2s;
+
+  &.nearLimit {
+    color: #e94e77;
+  }
+}
+
+.commentField {
+  resize: none;
+  line-height: 1.4;
+  padding-top: 14px;
+
+  &:is(textarea) {
+    resize: none;
+    line-height: 1.4;
+    padding-top: 16px;
+    height: auto;
+  }
+}
+
+.commentLabel {
+  top: 14px;
+  transform: none;
+}
+
+.commentField:focus + .commentLabel,
+.commentField:not(:placeholder-shown) + .commentLabel {
+  top: 0px;
+  left: 6px;
+  font-size: 11px;
+  background-color: #2b2b2b;
+  padding: 0 3px;
+  color: #bebebe;
+}
+
+.inputLabel {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-60%);
+  font-size: 14px;
+  color: #aaa;
+  transition: all 0.2s ease;
+  pointer-events: none;
+
+  textarea ~ & {
+    top: 16px;
+    transform: none;
+  }
+}
+
+.inputField:focus + .inputLabel,
+.inputField:not(:placeholder-shown) + .inputLabel,
+textarea.inputField:focus + .inputLabel,
+textarea.inputField:not(:placeholder-shown) + .inputLabel {
+  top: 0px;
+  left: 6px;
+  font-size: 11px;
+  background-color: #2b2b2b;
+  padding: 0 3px;
+  color: #bebebe;
+}
+
 /* Кнопки действий */
 .actions {
   display: flex;

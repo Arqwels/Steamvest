@@ -22,5 +22,6 @@ export function mapInvestmentToTableData(investment: Investment): TableData {
     profit_value: investment.profitValue, 
     profit_percent: investment.profitPercent,
     assets_value: investment.assetsValue,
+    comment: investment.comment,
   };
 }

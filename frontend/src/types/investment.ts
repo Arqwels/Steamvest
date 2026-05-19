@@ -15,6 +15,7 @@ export interface Investment {
   skin: Skin;
   changePercent: number;
   changePrice: number;
+  comment?: string;
 }
 
 export interface InvestmentsResponse {
@@ -43,4 +44,5 @@ export interface CreateInvestmentRequest {
 
 export interface UpdateInvestmentRequest extends CreateInvestmentRequest {
   id: number;
+  comment?: string;
 }

@@ -23,6 +23,7 @@
     "nodemailer": "^7.0.3",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
+    "puppeteer": "^24.43.0",
     "sequelize": "^6.37.3",
     "steam-session": "^1.9.2",
     "steam-totp": "^2.1.2",

@@ -15,4 +15,5 @@ export interface TableData {
   profit_value: number;
   profit_percent: number;
   assets_value: number;
+  comment?: string;
 }

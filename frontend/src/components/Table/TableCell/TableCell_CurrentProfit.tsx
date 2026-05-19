@@ -47,7 +47,7 @@ export const TableCell_CurrentProfit = ({
           ({formatNumber(currentProfitNet, { currency: currencyCode })})
         </span>
       </div>
-      <p>{profit_percent.toFixed(2)}%</p>
+      <p>{(profit_percent ?? 0).toFixed(2)}%</p>
     </td>
   );
 };
