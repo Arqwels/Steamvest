@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { searchParamsNamesSkins, headers } = require('../config/consts');
+const { searchParamsNamesSkins, headers } = require('../../api/config/consts');
 
 class SteamService {
   constructor() {
@@ -19,10 +19,13 @@ class SteamService {
         return await axios.get(url, config);
       } catch (error) {
         const status = error.response?.status;
-        if ([502, 429].includes(status)) {
+        if (status === 429) {
+          throw error;
+        }
+        if (status === 502) {
           attempt++;
           const retryAfter = parseInt(error.response.headers['retry-after'] || '5', 10) * 1000;
-          console.log(`Повтор ${attempt}/${retries} через ${retryAfter}мс из-за ${status}`);
+          console.log(`Повтор ${attempt}/${retries} через ${retryAfter}мс из-за 502`);
           await new Promise(res => setTimeout(res, retryAfter));
         } else {
           throw error;
@@ -116,6 +119,27 @@ class SteamService {
 
     console.log('[SteamService] Завершён fetchAllSkins');
     return all;
+  }
+
+  async fetchPriceHistory(marketHashName) {
+    if (!this.steamLoginSecure) {
+      throw new Error('[SteamService] Ошибка: SteamLoginSecure не задан');
+    }
+
+    return this.makeRequestWithRetry(
+      'https://steamcommunity.com/market/pricehistory/',
+      {
+        params: {
+          appid: 730,
+          market_hash_name: marketHashName,
+          currency: 5 // RUB
+        },
+        headers: {
+          ...headers,
+          Cookie: `steamLoginSecure=${this.steamLoginSecure}`
+        }
+      }
+    );
   }
 }
 

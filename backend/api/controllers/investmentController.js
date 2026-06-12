@@ -3,9 +3,9 @@ const { Invest, Skins, Portfolio, Sale } = require('../models');
 const ApiError = require('../exceptions/apiError');
 const { validationResult } = require('express-validator');
 const skinsHistoryPrice = require('../services/skinsHistoryPrice');
-const { Op, QueryTypes }= require('sequelize');
+const steamCommissionService = require('../services/steamCommissionService');
+const { Op, QueryTypes } = require('sequelize');
 const sequelize = require('../../db');
-const { COMMISSION_RATE } = require('../utils/constants');
 
 class InvestmentController {
   async additionInvestment (req, res) {
@@ -15,13 +15,11 @@ class InvestmentController {
 
       if (!portfolioId) return res.status(400).json({ message: 'portfolioId обязательный' });
 
-      // проверка существования скина
       const existingSkin = await Skins.findByPk(idItem);
       if (!existingSkin) {
         return res.status(400).json({ message: 'Скин не найден!' });
       }
 
-      // создаём инвестицию
       const investment = await Invest.create({
         portfolioId,
         idItem,
@@ -30,14 +28,10 @@ class InvestmentController {
         dateBuyItem
       });
 
-      // подтягиваем все данные о скине
       const fullInvestment = await Invest.findByPk(investment.id, {
-        include: [
-          { model: Skins, as: 'skin' }
-        ]
+        include: [{ model: Skins, as: 'skin' }]
       });
 
-      // Получаем историю изменений цены для нового скина
       const historyMap = await skinsHistoryPrice.getHistoryMap([fullInvestment.idItem]);
       const { changePrice = 0, changePercent = 0 } = historyMap[fullInvestment.idItem] || {};
       fullInvestment.setDataValue('changePrice', changePrice);
@@ -68,6 +62,8 @@ class InvestmentController {
 
       const where = pid ? { portfolioId: pid } : {};
 
+      // changePercent/changePrice — виртуальные поля, считаются в JS
+      // assetsValueNet/profitValueNet — тоже переопределяются в JS через комиссию
       const VIRTUAL_SORT_FIELDS = ['changePercent', 'changePrice'];
       const isVirtualSort = VIRTUAL_SORT_FIELDS.includes(sortBy);
 
@@ -76,6 +72,7 @@ class InvestmentController {
         price_item: sequelize.col('skin.price_skin'),
         investmentValue: sequelize.literal(`"invest"."buyPrice" * "invest"."countItems"`),
         buyPrice: sequelize.col('invest.buyPrice'),
+        // profitValue и assetsValue в sortMap оставляем грязными (SQL) для сортировки в БД
         profitValue: sequelize.literal(`("skin"."price_skin" - "invest"."buyPrice") * "invest"."countItems"`),
         profitPercent: sequelize.literal(`CASE WHEN "invest"."buyPrice" > 0 THEN (("skin"."price_skin" - "invest"."buyPrice") / "invest"."buyPrice") * 100 ELSE 0 END`),
         assetsValue: sequelize.literal(`"skin"."price_skin" * "invest"."countItems"`),
@@ -89,6 +86,7 @@ class InvestmentController {
         attributes: {
           include: [
             [sequelize.literal(`"invest"."buyPrice" * "invest"."countItems"`), 'investmentValue'],
+            // SQL-версии для сортировки; потом переопределим через setDataValue с учётом комиссии
             [sequelize.literal(`("skin"."price_skin" - "invest"."buyPrice") * "invest"."countItems"`), 'profitValue'],
             [sequelize.literal(`CASE WHEN "invest"."buyPrice" > 0 THEN (("skin"."price_skin" - "invest"."buyPrice") / "invest"."buyPrice") * 100 ELSE 0 END`), 'profitPercent'],
             [sequelize.literal(`"skin"."price_skin" * "invest"."countItems"`), 'assetsValue'],
@@ -103,13 +101,32 @@ class InvestmentController {
         order: isVirtualSort ? [['id', 'DESC']] : [[sortValue, sortOrder], ['id', 'DESC']],
       });
 
+      // Один батч-запрос для истории цен
       const idItems = investments.map((item) => item.idItem);
       const historyMap = idItems.length > 0 ? await skinsHistoryPrice.getHistoryMap(idItems) : {};
 
-      for (const inv of investments) {
+      // Один батч-запрос для комиссий — передаём skin объекты
+      const skins = investments.map((inv) => inv.skin);
+      const commissions = await steamCommissionService.calcBatch(skins, 'price_skin');
+
+      // Переопределяем поля с учётом комиссии
+      for (let i = 0; i < investments.length; i++) {
+        const inv = investments[i];
+        const { sellerGetsRub } = commissions[i];
+        const count = Number(inv.countItems) || 0;
+        const buyPrice = Number(inv.buyPrice) || 0;
+
+        // history
         const { changePrice = 0, changePercent = 0 } = historyMap[inv.idItem] || {};
         inv.setDataValue('changePrice', changePrice);
         inv.setDataValue('changePercent', changePercent);
+
+        // net-значения (с учётом комиссии)
+        const assetsValueNet = +(sellerGetsRub * count).toFixed(2);
+        const profitValueNet = +(( sellerGetsRub - buyPrice) * count).toFixed(2);
+        inv.setDataValue('assetsValue', assetsValueNet);
+        inv.setDataValue('profitValue', profitValueNet);
+        // profitPercent оставляем грязным (уже посчитан в SQL)
       }
 
       if (isVirtualSort) {
@@ -157,21 +174,13 @@ class InvestmentController {
         return res.status(404).json({ message: 'Инвестиция не найдена!' });
       }
 
-      // Обновляем только проверенные поля
       const { countItems, buyPrice, comment } = req.body;
       await investment.update({ countItems, buyPrice, comment });
 
       const updated = await Invest.findByPk(investmentId, {
         include: [
-          {
-            model: Portfolio,
-            as: 'portfolio',
-            attributes: ['id', 'namePortfolio']
-          },
-          {
-            model: Skins,
-            as: 'skin'
-          },
+          { model: Portfolio, as: 'portfolio', attributes: ['id', 'namePortfolio'] },
+          { model: Skins, as: 'skin' },
         ],
       });
 
@@ -182,7 +191,6 @@ class InvestmentController {
       const historyMap = await skinsHistoryPrice.getHistoryMap([updated.idItem]);
       const { changePrice = 0, changePercent = 0 } = historyMap[updated.idItem] || {};
 
-      // подготовим plain объект
       const updatedPlain = updated.get ? updated.get({ plain: true }) : updated;
       updatedPlain.changePrice = changePrice;
       updatedPlain.changePercent = changePercent;
@@ -229,12 +237,7 @@ class InvestmentController {
       const investments = await Invest.findAll({
         where: pid ? { portfolioId: pid } : {},
         include: [
-          {
-            model: Portfolio,
-            as: 'portfolio',
-            where: { userId },
-            attributes: []
-          },
+          { model: Portfolio, as: 'portfolio', where: { userId }, attributes: [] },
           { model: Skins, as: 'skin' }
         ],
         order: [['dateBuyItem', 'ASC']],
@@ -271,10 +274,7 @@ class InvestmentController {
         });
       });
 
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      );
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="investments.xlsx"');
 
       await workbook.xlsx.write(res);
@@ -294,37 +294,29 @@ class InvestmentController {
     if (!portfolioId) return res.status(400).json({ message: 'portfolioId обязательный' });
 
     try {
-      const sql = `
-        SELECT
-          COALESCE(SUM(i."countItems" * i."buyPrice"), 0) AS "totalInvested",
-          COALESCE(SUM(i."countItems" * s.price_skin), 0) AS "currentBalance",
-          COALESCE(SUM(i."countItems" * s.price_skin) - SUM(i."countItems" * i."buyPrice"), 0) AS "grossProfit"
-        FROM invests i
-        LEFT JOIN skins s ON s.id = i."idItem"
-        WHERE i."portfolioId" = :portfolioId
-      `;
-
-      const [row] = await sequelize.query(sql, {
-        replacements: { portfolioId },
-        type: QueryTypes.SELECT,
+      const investments = await Invest.findAll({
+        where: { portfolioId },
+        include: [
+          { model: Portfolio, as: 'portfolio', attributes: [] },
+          { model: Skins, as: 'skin', attributes: ['price_skin'] },
+        ],
+        attributes: ['countItems', 'buyPrice'],
+        raw: true,
+        nest: true,
       });
 
-      const totalInvested = Number(row.totalInvested ?? 0);
-      const currentBalance = Number(row.currentBalance ?? 0);
-      const grossProfit = currentBalance - totalInvested;
+      const summary = await steamCommissionService.calcSummary(
+        investments.map((inv) => ({
+          countItems: inv.countItems,
+          buyPrice: inv.buyPrice,
+          price_skin: inv.skin.price_skin,
+        }))
+      );
 
-      const currentBalanceNet = currentBalance * (1 - COMMISSION_RATE);
-      const netProfit = currentBalanceNet - totalInvested;
-
-      return res.json({
-        totalInvested: +totalInvested.toFixed(2),
-        currentBalance: +currentBalance.toFixed(2),
-        grossProfit: +grossProfit.toFixed(2),
-        netProfit: +netProfit.toFixed(2),
-      });
+      return res.json(summary);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Ошибка при получении всего инвестиций, тек. баланса и общей прибыли' });
+      return res.status(500).json({ error: 'Ошибка при получении summary инвестиций' });
     }
   }
 
@@ -355,7 +347,6 @@ class InvestmentController {
         return res.status(404).json({ message: 'Инвестиция не найдена!' });
       }
 
-      // Убедимся, что берем правильное поле (countItems)
       const currentQty = Number(investment.countItems || 0);
 
       if (countToSell > currentQty) {
@@ -365,7 +356,6 @@ class InvestmentController {
 
       const isFullSale = countToSell === currentQty;
 
-      // создаём запись в истории продаж
       const sale = await Sale.create({
         skinId: investment.idItem,
         portfolioId,
@@ -384,7 +374,6 @@ class InvestmentController {
         dateSale: saleDate ? new Date(saleDate) : new Date(),
       });
 
-      // обновляем/удаляем инвестицию
       if (isFullSale) {
         await Invest.destroy({ where: { id: investmentId }, transaction: trx });
         await trx.commit();
@@ -396,7 +385,6 @@ class InvestmentController {
       } else {
         const newQty = currentQty - countToSell;
         await investment.update({ countItems: newQty }, { transaction: trx });
-        // перезагрузим модель, чтобы вернуть актуальные поля
         await investment.reload({ transaction: trx });
         await trx.commit();
         return res.status(200).json({

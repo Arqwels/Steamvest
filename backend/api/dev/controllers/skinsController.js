@@ -2,29 +2,8 @@ const { QueryTypes } = require('sequelize');
 const sequelize = require('../../../db');
 const SkinPriceHistory = require('../../models/skinPriceHistory');
 const Skins = require('../../models/skinsModel');
-const { fetchAndSaveSkins } = require('../../services/skinsTaskService');
 
 class SkinsController {
-  constructor() {
-    // Привязываем контекст методов к инстансу
-    this.skinsData = this.skinsData.bind(this);
-  }
-
-  async skinsData(req, res) {
-    const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
-    console.log(`Получен запрос на /skinsData?limit=${limit}`);
-
-    try {
-      const result = await fetchAndSaveSkins(limit);
-      console.log('Успешно отправили ответ клиенту');
-      res.json(result);
-    } catch (err) {
-      console.error('Ошибка загрузки скинов:', err);
-      res.status(500).json({ error: 'Ошибка при запросе данных о скинах' });
-    }
-  };
-
-
   async skinHistory (req, res) {
     try {
       const { id } = req.params;

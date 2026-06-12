@@ -1,5 +1,5 @@
-const SkinPriceHistory = require('../models/skinPriceHistory');
-const { chunkArray } = require('../utils/chunk');
+const SkinPriceHistory = require('../../api/models/skinPriceHistory');
+const { chunkArray } = require('../../api/utils/chunk');
 
 class PriceHistoryService {
   async recordHistory(skinsFromDb, skinsData) {

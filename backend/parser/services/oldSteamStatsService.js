@@ -1,0 +1,187 @@
+
+// Когда работало и делался 1 запрос в 1,5 сек
+
+const steamService = require('./steamService');
+const steamAuthService = require('./steamAuthService');
+const SkinStats = require('../../api/models/skinStats');
+const SkinChart = require('../../api/models/skinChart');
+const SkinsModel = require('../../api/models/skinsModel');
+
+const DELAY_MS = parseInt(process.env.DELAY_MS) || 1500;
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+function parseSteamDate(str) {
+  const clean = str.replace(': +0', '').trim();
+  const d = new Date(clean);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function removeOutliers(prices) {
+  if (prices.length < 4) return prices;
+  const sorted = [...prices].sort((a, b) => a - b);
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  return sorted.filter(p => p >= q1 - 1.5 * iqr && p <= q3 + 1.5 * iqr);
+}
+
+function cleanMedian(periodPoints) {
+  const prices = removeOutliers(periodPoints.map(p => p.price));
+  if (!prices.length) return null;
+  const mid = Math.floor(prices.length / 2);
+  return prices.length % 2 !== 0
+    ? prices[mid]
+    : (prices[mid - 1] + prices[mid]) / 2;
+}
+
+function calcChange(points, hoursAgo) {
+  const now = Date.now();
+  const cutoff = new Date(now - hoursAgo * 36e5);
+  const prevCutoff = new Date(now - hoursAgo * 36e5 * 2);
+
+  const currentPeriod = points.filter(p => p.date >= cutoff);
+  const prevPeriod = points.filter(p => p.date >= prevCutoff && p.date < cutoff);
+
+  if (currentPeriod.length === 0) return null;
+
+  const currentMedian = cleanMedian(currentPeriod);
+  if (!currentMedian) return null;
+
+  let baseMedian;
+  if (prevPeriod.length >= 2) {
+    baseMedian = cleanMedian(prevPeriod);
+  } else {
+    const before = points.filter(p => p.date < cutoff);
+    if (!before.length) return null;
+    baseMedian = cleanMedian(before.slice(-5));
+  }
+
+  if (!baseMedian || baseMedian === 0) return null;
+
+  return parseFloat(((currentMedian - baseMedian) / baseMedian * 100).toFixed(2));
+}
+
+function calcChangeDay(points) {
+  const result = calcChange(points, 24);
+  if (result !== null) return result;
+  return calcChange(points, 36);
+}
+
+function calcVolume(points, hoursAgo) {
+  const cutoff = new Date(Date.now() - hoursAgo * 36e5);
+  return points.filter(p => p.date >= cutoff).reduce((s, p) => s + p.volume, 0);
+}
+
+function calcAvg(points, hoursAgo) {
+  const cutoff = new Date(Date.now() - hoursAgo * 36e5);
+  const period = points.filter(p => p.date >= cutoff);
+  if (!period.length) return null;
+  const prices = removeOutliers(period.map(p => p.price));
+  if (!prices.length) return null;
+  return parseFloat((prices.reduce((s, p) => s + p, 0) / prices.length).toFixed(4));
+}
+
+// Адаптивный график — расширяем окно если мало точек
+function getChartPoints(points, skinId) {
+  const now = Date.now();
+
+  let cutoff = new Date(now - 7 * 24 * 36e5);
+  let chartPoints = points.filter(p => p.date >= cutoff);
+  let period = '7d';
+
+  if (chartPoints.length < 5) {
+    cutoff = new Date(now - 30 * 24 * 36e5);
+    chartPoints = points.filter(p => p.date >= cutoff);
+    period = '30d';
+  }
+
+  if (chartPoints.length < 5) {
+    chartPoints = points.slice(-10);
+    period = 'all';
+  }
+
+  return {
+    period,
+    points: chartPoints.map(p => ({
+      skin_id: skinId,
+      price: p.price,
+      volume: p.volume,
+      recorded_at: p.date,
+      chart_period: period
+    }))
+  };
+}
+
+async function fetchAndSaveStats(limit = 100) {
+  const secureToken = await steamAuthService.init();
+  steamService.setLoginSecure(secureToken);
+
+  const queryOptions = { order: [['id', 'ASC']] };
+  if (limit) queryOptions.limit = limit;
+
+  const skins = await SkinsModel.findAll(queryOptions);
+
+  console.log(`[StatsService] Обрабатываем ${skins.length} скинов`);
+
+  let success = 0;
+  let failed = 0;
+
+  for (let i = 0; i < skins.length; i++) {
+    const skin = skins[i];
+    console.log(`[${i + 1}/${skins.length}] ${skin.market_hash_name}`);
+
+    try {
+      const { data } = await steamService.fetchPriceHistory(skin.market_hash_name);
+
+      if (!data?.success || !data.prices?.length) {
+        console.warn(` ⚠️ Нет данных`);
+        failed++;
+        await delay(DELAY_MS);
+        continue;
+      }
+
+      const points = data.prices
+        .map(([dateStr, priceStr, volStr]) => ({
+          date: parseSteamDate(dateStr),
+          price: parseFloat(priceStr),
+          volume: parseInt(volStr) || 0
+        }))
+        .filter(p => p.date && !isNaN(p.price));
+
+      const stats = {
+        skin_id: skin.id,
+        price_change_day: calcChangeDay(points),
+        price_change_week: calcChange(points, 168),
+        price_change_month: calcChange(points, 720),
+        volume_day: calcVolume(points, 24),
+        volume_week: calcVolume(points, 168),
+        volume_month: calcVolume(points, 720),
+        avg_price_day: calcAvg(points, 24),
+        updated_at: new Date()
+      };
+
+      await SkinStats.upsert(stats, { conflictFields: ['skin_id'] });
+
+      // Адаптивный график
+      const { period, points: chartPoints } = getChartPoints(points, skin.id);
+
+      if (chartPoints.length) {
+        await SkinChart.destroy({ where: { skin_id: skin.id } });
+        await SkinChart.bulkCreate(chartPoints);
+      }
+
+      success++;
+      console.log(` ✅ change_day: ${stats.price_change_day}% | vol_day: ${stats.volume_day} | chart: ${chartPoints.length} точек (${period})`);
+
+    } catch (err) {
+      failed++;
+      console.error(` ❌ Ошибка: ${err.message}`);
+    }
+
+    if (i < skins.length - 1) await delay(DELAY_MS);
+  }
+
+  console.log(`\n[StatsService] Готово — ✅ ${success} | ❌ ${failed}`);
+}
+
+module.exports = { fetchAndSaveStats };

@@ -1,6 +1,6 @@
-const SkinsModel = require('../models/skinsModel');
-const { getCurrencyAndPrice } = require('../utils/currency');
-const { chunkArray } = require('../utils/chunk');
+const SkinsModel = require('../../api/models/skinsModel');
+const { getCurrencyAndPrice } = require('../../api/utils/currency');
+const { chunkArray } = require('../../api/utils/chunk');
 
 class SkinsService {
   async upsertSkins(skinsData) {

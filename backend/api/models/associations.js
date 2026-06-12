@@ -1,6 +1,8 @@
 const { Invest, Skins, SkinPriceHistory, Portfolio, Sale } = require('./');
 const Token = require('./tokenModel');
 const User = require('./userModel');
+const SkinStats = require('./skinStats');
+const SkinChart = require('./skinChart');
 
 const initAssociations = () => {
   // Invest <-> Skins
@@ -88,6 +90,30 @@ const initAssociations = () => {
   Portfolio.hasMany(Sale, {
     foreignKey: 'portfolioId',
     as: 'sales'
+  });
+
+  // SkinStats <-> Skins
+  SkinStats.belongsTo(Skins, {
+    foreignKey: 'skin_id',
+    as: 'skin',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+  Skins.hasOne(SkinStats, {
+    foreignKey: 'skin_id',
+    as: 'stats'
+  });
+
+  // SkinChart <-> Skins
+  SkinChart.belongsTo(Skins, {
+    foreignKey: 'skin_id',
+    as: 'skin',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+  Skins.hasMany(SkinChart, {
+    foreignKey: 'skin_id',
+    as: 'chartPoints'
   });
 };
 

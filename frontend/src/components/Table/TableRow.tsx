@@ -91,6 +91,7 @@ export const TableRow = ({ row }: { row: TableData }) => {
         <TableCell_Holdings
           price_item={row.price_item}
           count_items={row.count_items}
+          assets_value={row.assets_value}
           currencyCode={row.currencyCode}
         />
       </tr>

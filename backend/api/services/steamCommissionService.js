@@ -14,20 +14,30 @@ class SteamCommissionService {
     const publisherRate = publisherFeeRate;
     const totalRate = steamRate + publisherRate;
 
-    const minFeeRub = parseFloat((0.03 * rubPerUsd).toFixed(2));
+    const minFeeRub = parseFloat((0.02 * rubPerUsd).toFixed(2)); // 2 цента
 
-    let totalFeeRub = priceRub - priceRub / (1 + totalRate);
-    totalFeeRub = Math.max(totalFeeRub, minFeeRub);
+    // totalFee по формуле
+    const totalFeeByFormula = Math.ceil((priceRub - priceRub * (100 / (100 + totalRate * 100))) * 100) / 100;
 
-    const steamFee = totalFeeRub * (steamRate / totalRate);
-    const publisherFee = totalFeeRub * (publisherRate / totalRate);
-    const sellerGets = Math.max(priceRub - totalFeeRub, 0);
+    if (totalFeeByFormula < minFeeRub) {
+      // Минималка — просто 2 цента, steam fee не считается
+      return {
+        steamFeeRub: 0,
+        publisherFeeRub: minFeeRub,
+        totalFeeRub: minFeeRub,
+        sellerGetsRub: parseFloat((priceRub - minFeeRub).toFixed(2)),
+      };
+    }
+
+    // Формула — считаем по процентам
+    const steamFee = parseFloat((totalFeeByFormula * (steamRate / totalRate)).toFixed(2));
+    const publisherFee = parseFloat((totalFeeByFormula - steamFee).toFixed(2));
 
     return {
-      steamFeeRub: parseFloat(steamFee.toFixed(2)),
-      publisherFeeRub: parseFloat(publisherFee.toFixed(2)),
-      totalFeeRub: parseFloat(totalFeeRub.toFixed(2)),
-      sellerGetsRub: parseFloat(sellerGets.toFixed(2)),
+      steamFeeRub: steamFee,
+      publisherFeeRub: publisherFee,
+      totalFeeRub: totalFeeByFormula,
+      sellerGetsRub: parseFloat((priceRub - totalFeeByFormula).toFixed(2)),
     };
   }
 

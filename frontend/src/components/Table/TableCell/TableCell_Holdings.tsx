@@ -1,28 +1,27 @@
 import { formatNumber } from '../../../utils/formatNumber';
-import { COMMISSION_RATE } from '../../../utils/config';
-import { calcAssets, calcAssetsNet } from '../../../utils/calculations';
 import styles from './TableCell.module.scss';
 
 type TableCell_HoldingsProps = {
   price_item: number;
   count_items: number;
+  assets_value: number;
   currencyCode?: string;
 };
 
 export const TableCell_Holdings = ({
   price_item,
   count_items,
+  assets_value,
   currencyCode,
 }: TableCell_HoldingsProps) => {
-  const assets = calcAssets(price_item, count_items);
-  const assetsNet = calcAssetsNet(assets, COMMISSION_RATE);
+  const assetsGross = +((price_item * count_items).toFixed(2));
 
   return (
     <td className={styles.wrap}>
       <span style={{ marginRight: '8px' }}>
-        {formatNumber(assets, { currency: currencyCode })}
+        {formatNumber(assetsGross, { currency: currencyCode })}
       </span>
-      <span>({formatNumber(assetsNet, { currency: currencyCode })})</span>
+      <span>({formatNumber(assets_value, { currency: currencyCode })})</span>
     </td>
   );
 };

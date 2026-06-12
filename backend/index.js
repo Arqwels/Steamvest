@@ -1,14 +1,12 @@
 require('dotenv').config()
+require('./parser');
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./db');
 const apiRouter = require('./api/routes/index');
 const initAssociations = require('./api/models/associations');
-const cron = require('node-cron');
-const { fetchAndSaveSkins } = require('./api/services/skinsTaskService');
 const cookieParser = require('cookie-parser');
 const errorMiddleware = require('./api/middlewares/errorMiddleware');
-const { fetchAndSaveRates } = require('./api/services/exchangeRateService');
 
 const app = express();
 const PORT = process.env.PORT || 2000;
@@ -27,32 +25,18 @@ app.use(errorMiddleware);
 // Импорт моделей и ассоциаций
 initAssociations();
 
-// Сделать запрос через node-cron
-
-// Запланировать выполнение задачи каждые 6 часов (в 0 минут каждого 6-го часа)
-// cron.schedule('0 */6 * * *', async () => {
-//   console.log('Запуск задачи: получение скинов и сохранение истории цен');
-//   try {
-//     await fetchAndSaveSkins();
-//     console.log('Данные успешно обновлены.');
-//   } catch (error) {
-//     console.error("Ошибка при выполнении запланированной задачи:", error);
-//   }
-// });
-
-// Крон курсов валют — каждые 6 часов
-cron.schedule('0 */6 * * *', async () => {
-  console.log('[Cron] Обновление курсов валют...');
-  try {
-    await fetchAndSaveRates();
-  } catch (error) {
-    console.error('[Cron] Ошибка при обновлении курсов:', error.message);
-  }
-});
-
 const start = async () => {
   try {
-    await sequelize.authenticate()
+    await sequelize.authenticate();
+
+    // ▼ Добавь это временно ▼
+    // const SkinStats = require('./api/models/skinStats');
+    // const SkinChart = require('./api/models/skinChart');
+    // await SkinStats.sync({ force: true });
+    // await SkinChart.sync({ force: true });
+    // console.log('✅ Таблицы skin_stats и skin_charts пересозданы');
+    // ▲ После запуска удали эти 5 строк ▲
+
     await sequelize.sync();
 
     app.listen(PORT, () => {
