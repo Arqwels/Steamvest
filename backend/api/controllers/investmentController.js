@@ -8,7 +8,7 @@ const { Op, QueryTypes } = require('sequelize');
 const sequelize = require('../../db');
 
 class InvestmentController {
-  async additionInvestment (req, res) {
+  async additionInvestment(req, res) {
     try {
       const userId = req.user.id;
       const { portfolioId, idItem, countItems, buyPrice, dateBuyItem } = req.body;
@@ -37,7 +37,22 @@ class InvestmentController {
       fullInvestment.setDataValue('changePrice', changePrice);
       fullInvestment.setDataValue('changePercent', changePercent);
 
-      res.status(201).json({
+      const [commissionResult] = await steamCommissionService.calcBatch([fullInvestment.skin], 'price_skin');
+      const { sellerGetsRub } = commissionResult;
+
+      const count = Number(countItems) || 0;
+      const buyPriceNum = Number(buyPrice) || 0;
+      const priceSkin = Number(fullInvestment.skin.price_skin) || 0;
+
+      fullInvestment.setDataValue('investmentValue', +(buyPriceNum * count).toFixed(2));
+      fullInvestment.setDataValue('assetsValue', +(sellerGetsRub * count).toFixed(2));
+      fullInvestment.setDataValue('profitValue', +((sellerGetsRub - buyPriceNum) * count).toFixed(2));
+      fullInvestment.setDataValue('profitPercent', buyPriceNum > 0
+        ? +((priceSkin - buyPriceNum) / buyPriceNum * 100).toFixed(2)
+        : 0
+      );
+
+      return res.status(201).json({
         message: 'Инвестиция успешно создана',
         investment: fullInvestment
       });
@@ -156,7 +171,7 @@ class InvestmentController {
     }
   }
 
-  async updateInvestment (req, res, next) {
+  async updateInvestment(req, res, next) {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -191,9 +206,22 @@ class InvestmentController {
       const historyMap = await skinsHistoryPrice.getHistoryMap([updated.idItem]);
       const { changePrice = 0, changePercent = 0 } = historyMap[updated.idItem] || {};
 
-      const updatedPlain = updated.get ? updated.get({ plain: true }) : updated;
+      const [commissionResult] = await steamCommissionService.calcBatch([updated.skin], 'price_skin');
+      const { sellerGetsRub } = commissionResult;
+
+      const count = Number(updated.countItems) || 0;
+      const buyPriceNum = Number(updated.buyPrice) || 0;
+      const priceSkin = Number(updated.skin.price_skin) || 0;
+
+      const updatedPlain = updated.get({ plain: true });
       updatedPlain.changePrice = changePrice;
       updatedPlain.changePercent = changePercent;
+      updatedPlain.investmentValue = +(buyPriceNum * count).toFixed(2);
+      updatedPlain.assetsValue = +(sellerGetsRub * count).toFixed(2);
+      updatedPlain.profitValue = +((sellerGetsRub - buyPriceNum) * count).toFixed(2);
+      updatedPlain.profitPercent = buyPriceNum > 0
+        ? +((priceSkin - buyPriceNum) / buyPriceNum * 100).toFixed(2)
+        : 0;
 
       return res.status(200).json({
         message: 'Инвестиция успешно обновлена!',

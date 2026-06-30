@@ -63,13 +63,14 @@ export const TableSalesRow = ({ row }: { row: Sale }) => {
           priceBuy={row.priceBuy}
           priceSale={row.priceSale}
           countSale={row.countSale}
+          netProfit={row.netProfit}
           currencyCode={row.skin.currency_code}
         />
         {/* ( 6 - Доходность (RIO) ) */}
         <TableSalesCell_ROI
           priceBuy={row.priceBuy}
           priceSale={row.priceSale}
-          countSale={row.countSale}
+          roi={row.roi}
         />
         {/* ( 7 - Дата ) */}
         <TableSalesCell_Date

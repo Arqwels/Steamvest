@@ -4,17 +4,15 @@ type FormatNumberOptions = {
 };
 
 export const formatNumber = (
-  number: number,
+  value: number,
   options: FormatNumberOptions = {}
 ): string => {
-  const { locale = 'ru-RU', currency = 'RUB' } = options;
+  const { locale = 'ru-RU', currency } = options;
 
-  const formatter = new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(locale, {
     style: currency ? 'currency' : 'decimal',
-    currency,
-    minimumFractionDigits: 0, // Минимальное количество знаков после запятой (0)
+    ...(currency && { currency }),
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  });
-
-  return formatter.format(number);
+  }).format(value);
 };

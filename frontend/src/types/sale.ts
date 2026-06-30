@@ -12,6 +12,8 @@ export interface Sale {
   createdAt: string;
   updatedAt: string;
   skin: Skin;
+  netProfit: number;
+  roi: number;
 }
 
 export interface SalesResponse {

@@ -1,10 +1,79 @@
 const axios = require('axios');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const { searchParamsNamesSkins, headers } = require('../../api/config/consts');
+
+const PROXY_LIST = (process.env.PROXY_LIST || process.env.PROXY_URL || '')
+  .split(',')
+  .map(p => p.trim())
+  .filter(Boolean);
+
+class ProxyRotator {
+  constructor(proxyList) {
+    this.list = proxyList;
+    this.index = 0;
+    this.failCounts = {};
+    this.usedSet = new Set();
+  }
+
+  current() {
+    return this.list[this.index] || null;
+  }
+
+  next() {
+    if (this.list.length === 0) return null;
+    this.index = (this.index + 1) % this.list.length;
+    const proxy = this.list[this.index];
+    console.log(`[ProxyRotator] 🔄 Переключились на прокси #${this.index + 1}/${this.list.length}: ${this._mask(proxy)}`);
+    return proxy;
+  }
+
+  markFailed(proxy) {
+    this.failCounts[proxy] = (this.failCounts[proxy] || 0) + 1;
+    console.warn(`[ProxyRotator] ❌ Прокси #${this.index + 1} получил 429 (всего раз: ${this.failCounts[proxy]}): ${this._mask(proxy)}`);
+  }
+
+  getAgent() {
+    const proxy = this.current();
+    if (!proxy) return undefined;
+    this.usedSet.add(proxy);
+    return new HttpsProxyAgent(proxy);
+  }
+
+  // Замаскированные URL прокси, использованных в прогоне — для StatsParserRun.proxies_used
+  getUsedMasked() {
+    return [...this.usedSet].map(url => this._mask(url));
+  }
+
+  // Сбрасываем перед новым прогоном
+  resetUsed() {
+    this.usedSet.clear();
+  }
+
+  _mask(url) {
+    return url ? url.replace(/:([^@]+)@/, ':****@') : 'none';
+  }
+
+  status() {
+    const proxy = this.current();
+    return proxy
+      ? `прокси #${this.index + 1}/${this.list.length} (${this._mask(proxy)})`
+      : 'без прокси (прямое соединение)';
+  }
+}
+
+const rotator = new ProxyRotator(PROXY_LIST);
+
+if (PROXY_LIST.length > 0) {
+  console.log(`[SteamService] 🌐 Прокси загружены: ${PROXY_LIST.length} шт. | текущий: ${rotator._mask(rotator.current())}`);
+} else {
+  console.warn('[SteamService] ⚠️  Прокси не заданы, работаем без прокси');
+}
 
 class SteamService {
   constructor() {
     this.requestCount = 0;
     this.steamLoginSecure = null;
+    this.useProxy = false; // по умолчанию — прямое соединение
   }
 
   setLoginSecure(token) {
@@ -14,14 +83,42 @@ class SteamService {
 
   async makeRequestWithRetry(url, config, retries = 3) {
     let attempt = 0;
+    let lastError;
+
     while (attempt < retries) {
+      // Используем прокси только если был 429 раньше
+      const agent = this.useProxy ? rotator.getAgent() : undefined;
+
       try {
-        return await axios.get(url, config);
+        return await axios.get(url, {
+          ...config,
+          ...(agent ? { httpsAgent: agent, proxy: false } : {}),
+        });
       } catch (error) {
+        lastError = error;
         const status = error.response?.status;
+
         if (status === 429) {
-          throw error;
+          attempt++;
+
+          if (!this.useProxy && rotator.current()) {
+            // Первый 429 — включаем прокси
+            this.useProxy = true;
+            console.warn(` ⏸️ 429 с прямого IP — включаем прокси: ${rotator.status()}`);
+          } else if (this.useProxy && rotator.current()) {
+            // Прокси тоже получил 429 — переключаем на следующий
+            rotator.markFailed(rotator.current());
+            rotator.next();
+            console.warn(` ⏸️ 429 через прокси — переключились на ${rotator.status()}`);
+          } else {
+            // Прокси нет — просто ждём
+            console.warn(` ⏸️ 429 — прокси не заданы, пауза 10 мин`);
+            await new Promise(res => setTimeout(res, 10 * 60_000));
+          }
+
+          continue;
         }
+
         if (status === 502) {
           attempt++;
           const retryAfter = parseInt(error.response.headers['retry-after'] || '5', 10) * 1000;
@@ -32,7 +129,8 @@ class SteamService {
         }
       }
     }
-    throw new Error('Достигнуто максимальное количество повторных попыток');
+
+    throw lastError;
   }
 
   async fetchSkinsBatch(start, count) {
@@ -132,7 +230,7 @@ class SteamService {
         params: {
           appid: 730,
           market_hash_name: marketHashName,
-          currency: 5 // RUB
+          currency: 5
         },
         headers: {
           ...headers,
@@ -143,4 +241,10 @@ class SteamService {
   }
 }
 
-module.exports = new SteamService();
+const instance = new SteamService();
+
+instance.proxyStatus = () => rotator.status();
+instance.getUsedProxiesMasked = () => rotator.getUsedMasked();
+instance.resetProxyTracking = () => rotator.resetUsed();
+
+module.exports = instance;

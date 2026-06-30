@@ -34,7 +34,7 @@ export const TableCell_CurrentProfit = ({
           ({formatNumber(profit_value, { currency: currencyCode })})
         </span>
       </div>
-      <p>{(profit_percent ?? 0).toFixed(2)}%</p>
+      <p>{parseFloat((profit_percent ?? 0).toFixed(2))}%</p>
     </td>
   );
 };

@@ -15,10 +15,9 @@ export const TableCell_24hProfit = ({
 }: TableCell_24hProfitProps) => {
   const totalProfit = count_items * change_price_profit_24h;
 
-  const cls = getChangeClass(totalProfit);
   return (
     <td className={styles.wrap}>
-      <p className={cls}>
+      <p className={getChangeClass(totalProfit)}>
         {formatNumber(totalProfit, { currency: currencyCode })}
       </p>
     </td>

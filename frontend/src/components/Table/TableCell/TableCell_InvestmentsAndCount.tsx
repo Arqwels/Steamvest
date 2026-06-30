@@ -1,6 +1,5 @@
 import styles from './TableCell.module.scss';
 import { formatNumber } from '../../../utils/formatNumber';
-import { calcInvest } from '../../../utils/calculations';
 
 type TableCell_InvestmentsAndCountProps = {
   count_items: number;
@@ -13,7 +12,7 @@ export const TableCell_InvestmentsAndCount = ({
   buy_price,
   currencyCode,
 }: TableCell_InvestmentsAndCountProps) => {
-  const investment = calcInvest(count_items, buy_price);
+  const investment = +((count_items * buy_price).toFixed(2));
 
   return (
     <td className={styles.wrap}>

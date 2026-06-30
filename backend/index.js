@@ -1,5 +1,6 @@
 require('dotenv').config()
 require('./parser');
+require('./telegramBot');
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./db');

@@ -6,51 +6,35 @@ type TableSalesCell_NetProfitProps = {
   priceBuy: number;
   priceSale: number;
   countSale: number;
+  netProfit: number; // чистая с комиссией (с бэка)
   currencyCode?: string;
 };
+
 // ( 5 - Чистая прибыль )
 export const TableSalesCell_NetProfit = ({
   priceBuy,
   priceSale,
   countSale,
+  netProfit,
   currencyCode,
 }: TableSalesCell_NetProfitProps) => {
-  const totalSale     = +((priceSale * countSale).toFixed(2));
-  const totalInvested = +((priceBuy  * countSale).toFixed(2));
-  const netProfit     = +(totalSale - totalInvested).toFixed(2);
+  // Грязная прибыль — без учёта комиссии Steam
+  const grossProfit = +((priceSale - priceBuy) * countSale).toFixed(2);
 
-  const cls = getChangeClass(netProfit);
-  // const totalInvest = calcAssets(priceSale, countSale);
-  // const totalBuy = calcAssets(priceBuy, countSale);
+  const clsGross = getChangeClass(grossProfit);
+  const clsNet = getChangeClass(netProfit);
 
-  // const netProfit = +(totalInvest - totalBuy).toFixed(2);
-  // const commissionsNetProfitAsset = calcAssetsNet(netProfit, COMMISSION_RATE);
-
-  // const cls = getChangeClass(netProfit);
-  // const clsNet = getChangeClass(commissionsNetProfitAsset);
   return (
-    // <td className={styles.wrap}>
-    //   <p className={cls}>
-    //     {formatNumber(netProfit, { currency: currencyCode })}
-    //   </p>
-    //   <p className={`${styles.tooltip} ${clsNet}`}>
-    //     ({formatNumber(commissionsNetProfitAsset, { currency: currencyCode })})
-    //     <span className={styles.tooltipText}>
-    //       Чистая прибыль с учётом комиссии Steam
-    //     </span>
-    //   </p>
-    // </td>
-
     <td className={styles.wrap}>
-      <p className={cls}>
-        {formatNumber(netProfit, { currency: currencyCode })}
+      <p className={clsGross}>
+        {formatNumber(grossProfit, { currency: currencyCode })}
       </p>
-      <span className={styles.tooltipText}>
-        Чистая прибыль с учётом комиссии Steam
-      </span>
+      <p className={`${styles.tooltip} ${clsNet}`}>
+        {formatNumber(netProfit, { currency: currencyCode })}
+        <span className={styles.tooltipText}>
+          Чистая прибыль с учётом комиссии Steam
+        </span>
+      </p>
     </td>
   );
 };
-
-
-

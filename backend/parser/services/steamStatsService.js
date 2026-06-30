@@ -3,6 +3,11 @@ const steamAuthService = require('./steamAuthService');
 const SkinStats = require('../../api/models/skinStats');
 const SkinChart = require('../../api/models/skinChart');
 const SkinsModel = require('../../api/models/skinsModel');
+const StatsParserRun   = require('../../api/models/statsParserRun');
+const {
+  notifyStatsCompleted,
+  notifyProxiesExhausted,
+} = require('./telegramService');
 
 // --- Настройки ---
 const CONCURRENCY   = parseInt(process.env.CONCURRENCY)    || 10;   // параллельных запросов
@@ -170,7 +175,7 @@ async function processSkin(skin, rateLimiter, index, total) {
     );
 
     if (!data?.success || !data.prices?.length) {
-      console.warn(`  ⚠️  Нет данных`);
+      console.warn(` ⚠️ Нет данных`);
       return 'failed';
     }
 
@@ -216,6 +221,7 @@ async function processSkin(skin, rateLimiter, index, total) {
 async function fetchAndSaveStats(limit = null) {
   let success = 0;
   let failed = 0;
+  let run = null;
 
   try {
     const secureToken = await steamAuthService.init();
@@ -225,7 +231,14 @@ async function fetchAndSaveStats(limit = null) {
     if (limit) queryOptions.limit = limit;
 
     const skins = await SkinsModel.findAll(queryOptions);
+    const totalSkins = skins.length;
+
     console.log(`[StatsService] Обрабатываем ${skins.length} скинов | concurrency: ${CONCURRENCY} | rps: ${RPS}`);
+    console.log(`[StatsService] 🌐 ${steamService.proxyStatus()}`);
+
+    steamService.resetProxyTracking();
+    run = await StatsParserRun.create({ total_skins: totalSkins, status: 'running' });
+    console.log(`[StatsService] 📝 Прогон #${run.id} создан`);
 
     const rateLimiter = new RateLimiter(RPS);
     let totalProcessed = 0;
@@ -241,20 +254,56 @@ async function fetchAndSaveStats(limit = null) {
       results.forEach(r => r === 'success' ? success++ : failed++);
       totalProcessed += batch.length;
 
+      await run.update({ success_count: success, failed_count: failed });
+
       // Пауза каждые 10k
       if (totalProcessed % 10_000 < CONCURRENCY && totalProcessed < skins.length) {
         console.log(`\n[StatsService] ⏸️  Пауза 10 минут после ${totalProcessed} запросов...\n`);
-        await delay(10 * 60_000);
+        await delay(5 * 60_000);
       } else if (i + CONCURRENCY < skins.length) {
         await delay(BATCH_PAUSE);
       }
     }
 
-    console.log(`\n[StatsService] Готово — ✅ ${success} | ❌ ${failed}`);
+    const proxiesUsed = steamService.getUsedProxiesMasked();
+    const durationMin = Math.round((Date.now() - new Date(run.started_at).getTime()) / 60_000);
+
+    await run.update({
+      finished_at:   new Date(),
+      status:        'completed',
+      success_count: success,
+      failed_count:  failed,
+      proxies_used:  proxiesUsed,
+    });
+
+    console.log(`\n[StatsService] Готово — ✅ ${success} | ❌ ${failed} | ⏱ ${durationMin} мин`);
+    await notifyStatsCompleted(run.id, totalSkins, success, failed, durationMin);
   } catch (err) {
     if (err.isStop) {
       console.log(`\n[StatsService] 🛑 Парсинг остановлен — ✅ ${success} | ❌ ${failed}`);
+      if (run) {
+        await run.update({
+          finished_at:   new Date(),
+          status:        'stopped',
+          success_count: success,
+          failed_count:  failed,
+          proxies_used:  steamService.getUsedProxiesMasked(),
+          stop_reason:   '429_limit',
+        }).catch(e => console.error('[StatsService] Ошибка финализации:', e.message));
+        await notifyProxiesExhausted(run.id, success, failed);
+      }
       return; // выходим gracefully, всё что успели — сохранено
+    }
+
+    if (run) {
+      await run.update({
+        finished_at:   new Date(),
+        status:        'stopped',
+        success_count: success,
+        failed_count:  failed,
+        proxies_used:  steamService.getUsedProxiesMasked(),
+        stop_reason:   err.message.slice(0, 120),
+      }).catch(() => {});
     }
     throw err;
   }

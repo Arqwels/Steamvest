@@ -42,7 +42,7 @@ const investmentsSlice = createSlice({
     upsertOne(state, action: PayloadAction<Investment>) {
       investmentsAdapter.upsertOne(state, action.payload);
       if (!state.orderedIds.includes(action.payload.id)) {
-        state.orderedIds.push(action.payload.id);
+        state.orderedIds.unshift(action.payload.id);
       }
     },
 

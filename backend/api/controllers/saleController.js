@@ -1,5 +1,6 @@
 const { Sale, Skins, Portfolio } = require('../models');
 const { Op } = require('sequelize');
+const steamCommissionService = require('../services/steamCommissionService');
 
 class SaleController {
   /**
@@ -26,18 +27,35 @@ class SaleController {
 
       const sales = await Sale.findAll({
         where,
-        include: [
-          {
-            model: Skins,
-            as: 'skin'
-          },
-        ],
+        include: [{ model: Skins, as: 'skin' }],
         limit: limit + 1,
         order: [['id', 'DESC']]
       });
 
       const hasMore = sales.length > limit;
       const items = hasMore ? sales.slice(0, limit) : sales;
+
+      const commissions = await steamCommissionService.calcBatch(
+        items.map(s => ({ price_skin: s.priceSale })),
+        'price_skin'
+      );
+
+      for (let i = 0; i < items.length; i++) {
+        const sale = items[i];
+        const { sellerGetsRub } = commissions[i];
+
+        const count = Number(sale.countSale) || 0;
+        const priceBuy = Number(sale.priceBuy)  || 0;
+        const totalBuy = +(priceBuy * count).toFixed(2);
+        const netProfit = +(sellerGetsRub * count - totalBuy).toFixed(2);
+        const roi = totalBuy > 0
+          ? +((netProfit / totalBuy) * 100).toFixed(2)
+          : 0;
+
+        sale.setDataValue('netProfit', netProfit);
+        sale.setDataValue('roi', roi);
+      }
+
       const last = items.length > 0 ? items[items.length - 1].id : null;
 
       return res.status(200).json({
