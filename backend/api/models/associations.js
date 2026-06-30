@@ -3,6 +3,7 @@ const Token = require('./tokenModel');
 const User = require('./userModel');
 const SkinStats = require('./skinStats');
 const SkinChart = require('./skinChart');
+const Favorite = require('./favoriteModel');
 
 const initAssociations = () => {
   // Invest <-> Skins
@@ -114,6 +115,30 @@ const initAssociations = () => {
   Skins.hasMany(SkinChart, {
     foreignKey: 'skin_id',
     as: 'chartPoints'
+  });
+
+  // User <-> Favorite
+  User.hasMany(Favorite, {
+    foreignKey: 'user_id',
+    as: 'favorites'
+  });
+  Favorite.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+
+  // Skins <-> Favorite
+  Skins.hasMany(Favorite, {
+    foreignKey: 'skin_id',
+    as: 'favoritedBy'
+  });
+  Favorite.belongsTo(Skins, {
+    foreignKey: 'skin_id',
+    as: 'skin',
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
   });
 };
 
